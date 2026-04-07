@@ -3,9 +3,7 @@
 #  SPIRAL / Nyx CLI
 **The Advanced Autonomous AI Coding Agent**
 
-<p align="center">
-  ![WhatsApp Image 2026-04-03 at 12 36 57 PM](https://github.com/user-attachments/assets/483ebd2c-6dc4-40f3-bb57-89bd3d16ae15)
-</p>
+
 
 <!-- 
 =======================================================================
@@ -13,7 +11,8 @@ PLACEHOLDER FOR YOUR SCREENSHOT
 Replace the 'src' in the img tag below with the path to your actual screenshot.
 =======================================================================
 -->
-<img src="https://via.placeholder.com/800x400/2D1B4e/FFFFFF?text=Insert+Nyx+CLI+Screenshot+Here" alt="Nyx CLI Interface Screenshot Placeholder" width="800" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"/>
+![WhatsApp Image 2026-04-03 at 12 36 57 PM](https://github.com/user-attachments/assets/584d4ac1-c2f8-4cc7-9767-59c467ffb15b)
+style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"/>
 <br>
 <em>*The sleek, purple-themed, Claude-style interface featuring our pixel-accurate Nyx mascot.*</em>
 
@@ -98,6 +97,3 @@ The SPIRAL architecture relies on clearly structured, decoupled components:
 
 ---
 
-<div align="center">
-  <i>Built to be beautiful. Built to be robust.</i>
-</div>
