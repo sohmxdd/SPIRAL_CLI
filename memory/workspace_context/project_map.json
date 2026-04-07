@@ -1,0 +1,221 @@
+{
+  "files": {
+    "config.py": {
+      "extension": ".py",
+      "size_bytes": 3775,
+      "modified": "2026-04-02T20:39:51.981451",
+      "type": "configuration"
+    },
+    "main.py": {
+      "extension": ".py",
+      "size_bytes": 702,
+      "modified": "2026-04-02T18:42:25.594938",
+      "type": "entry_point"
+    },
+    "pyproject.toml": {
+      "extension": ".toml",
+      "size_bytes": 528,
+      "modified": "2026-04-02T23:41:29.781422",
+      "type": "source"
+    },
+    "requirements.txt": {
+      "extension": ".txt",
+      "size_bytes": 64,
+      "modified": "2026-04-02T18:53:00.420565",
+      "type": "source"
+    },
+    "run.bat": {
+      "extension": ".bat",
+      "size_bytes": 717,
+      "modified": "2026-04-03T00:15:15.238325",
+      "type": "source"
+    },
+    "test.py": {
+      "extension": ".py",
+      "size_bytes": 217,
+      "modified": "2026-04-02T20:55:50.244266",
+      "type": "source"
+    },
+    "agents\\coder.py": {
+      "extension": ".py",
+      "size_bytes": 3967,
+      "modified": "2026-04-02T16:28:50.676372",
+      "type": "agent"
+    },
+    "agents\\debugger.py": {
+      "extension": ".py",
+      "size_bytes": 2943,
+      "modified": "2026-04-02T16:29:01.051664",
+      "type": "agent"
+    },
+    "agents\\planner.py": {
+      "extension": ".py",
+      "size_bytes": 5707,
+      "modified": "2026-04-02T18:38:26.193666",
+      "type": "agent"
+    },
+    "agents\\reflector.py": {
+      "extension": ".py",
+      "size_bytes": 2560,
+      "modified": "2026-04-02T16:29:19.628116",
+      "type": "agent"
+    },
+    "agents\\tester.py": {
+      "extension": ".py",
+      "size_bytes": 5408,
+      "modified": "2026-04-02T20:38:53.667023",
+      "type": "agent"
+    },
+    "agents\\verifier.py": {
+      "extension": ".py",
+      "size_bytes": 4990,
+      "modified": "2026-04-02T18:37:02.940406",
+      "type": "agent"
+    },
+    "agents\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 55,
+      "modified": "2026-04-02T20:46:54.254895",
+      "type": "agent"
+    },
+    "core\\intent.py": {
+      "extension": ".py",
+      "size_bytes": 6931,
+      "modified": "2026-04-02T20:38:19.906867",
+      "type": "core"
+    },
+    "core\\loop.py": {
+      "extension": ".py",
+      "size_bytes": 37537,
+      "modified": "2026-04-02T23:42:25.059766",
+      "type": "core"
+    },
+    "core\\observation.py": {
+      "extension": ".py",
+      "size_bytes": 2165,
+      "modified": "2026-04-02T18:37:04.977781",
+      "type": "core"
+    },
+    "core\\state.py": {
+      "extension": ".py",
+      "size_bytes": 9205,
+      "modified": "2026-04-02T23:40:06.017872",
+      "type": "core"
+    },
+    "core\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 15,
+      "modified": "2026-04-02T20:46:56.279120",
+      "type": "core"
+    },
+    "llm\\groq_client.py": {
+      "extension": ".py",
+      "size_bytes": 6700,
+      "modified": "2026-04-02T23:39:30.765040",
+      "type": "source"
+    },
+    "llm\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 14,
+      "modified": "2026-04-02T16:25:43.900470",
+      "type": "source"
+    },
+    "memory\\memory.py": {
+      "extension": ".py",
+      "size_bytes": 5100,
+      "modified": "2026-04-02T23:40:38.317394",
+      "type": "data"
+    },
+    "memory\\workspace_context.py": {
+      "extension": ".py",
+      "size_bytes": 9163,
+      "modified": "2026-04-02T20:38:55.688186",
+      "type": "data"
+    },
+    "memory\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 17,
+      "modified": "2026-04-02T16:25:51.966449",
+      "type": "data"
+    },
+    "memory\\workspace_context\\file_summaries.json": {
+      "extension": ".json",
+      "size_bytes": 101,
+      "modified": "2026-04-03T16:36:37.959234",
+      "type": "data"
+    },
+    "memory\\workspace_context\\project_map.json": {
+      "extension": ".json",
+      "size_bytes": 5922,
+      "modified": "2026-04-03T16:36:37.959234",
+      "type": "data"
+    },
+    "path\\to\\file.py": {
+      "extension": ".py",
+      "size_bytes": 123,
+      "modified": "2026-04-02T16:49:59.859608",
+      "type": "source"
+    },
+    "tools\\exec_tool.py": {
+      "extension": ".py",
+      "size_bytes": 3301,
+      "modified": "2026-04-02T23:41:19.424921",
+      "type": "utility"
+    },
+    "tools\\file_tool.py": {
+      "extension": ".py",
+      "size_bytes": 3601,
+      "modified": "2026-04-02T16:27:51.790761",
+      "type": "utility"
+    },
+    "tools\\terminal_tool.py": {
+      "extension": ".py",
+      "size_bytes": 2149,
+      "modified": "2026-04-02T23:41:24.609873",
+      "type": "utility"
+    },
+    "tools\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 16,
+      "modified": "2026-04-02T16:25:45.913433",
+      "type": "utility"
+    },
+    "ui\\cli.py": {
+      "extension": ".py",
+      "size_bytes": 11945,
+      "modified": "2026-04-02T23:42:27.090162",
+      "type": "ui"
+    },
+    "ui\\mascot.py": {
+      "extension": ".py",
+      "size_bytes": 11001,
+      "modified": "2026-04-02T23:40:40.332132",
+      "type": "ui"
+    },
+    "ui\\mascot_renderer.py": {
+      "extension": ".py",
+      "size_bytes": 10536,
+      "modified": "2026-04-02T20:41:30.571320",
+      "type": "ui"
+    },
+    "ui\\theme.py": {
+      "extension": ".py",
+      "size_bytes": 8727,
+      "modified": "2026-04-02T20:41:28.553807",
+      "type": "ui"
+    },
+    "ui\\token_meter.py": {
+      "extension": ".py",
+      "size_bytes": 3994,
+      "modified": "2026-04-02T16:27:27.776392",
+      "type": "ui"
+    },
+    "ui\\__init__.py": {
+      "extension": ".py",
+      "size_bytes": 13,
+      "modified": "2026-04-02T16:25:41.886919",
+      "type": "ui"
+    }
+  },
+  "last_scan": "2026-04-07T12:37:46.156409"
+}

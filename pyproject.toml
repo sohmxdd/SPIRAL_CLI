@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spiral-agent"
+version = "3.0.0"
+description = "SPIRAL — Autonomous CLI Coding Agent powered by Groq"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "groq>=0.4.0",
+    "colorama>=0.4.6",
+    "python-dotenv>=1.0.0",
+    "Pillow>=10.0.0",
+]
+
+[project.scripts]
+spiral = "main:run"
+
+[tool.setuptools]
+py-modules = ["main", "config"]
+packages = ["agents", "core", "llm", "memory", "tools", "ui"]

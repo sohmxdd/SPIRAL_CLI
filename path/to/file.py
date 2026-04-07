@@ -1,0 +1,1 @@
+echo 'Available actions: python, python3, pip, pip3, node, npm, npx, ls, dir, cat, type, echo, mkdir, touch, cp, copy, git'
