@@ -4,9 +4,7 @@
 **The Advanced Autonomous AI Coding Agent**
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Active-purple?style=for-the-badge" alt="Status Active" />
-  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+" />
-  <img src="https://img.shields.io/badge/Architecture-Autonomous-8A2BE2?style=for-the-badge" alt="LLM Powered" />
+  ![WhatsApp Image 2026-04-03 at 12 36 57 PM](https://github.com/user-attachments/assets/483ebd2c-6dc4-40f3-bb57-89bd3d16ae15)
 </p>
 
 <!-- 
