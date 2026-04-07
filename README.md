@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌌 SPIRAL / Nyx CLI
+#  SPIRAL / Nyx CLI
 **The Advanced Autonomous AI Coding Agent**
 
 <p align="center">
@@ -23,23 +23,23 @@ Replace the 'src' in the img tag below with the path to your actual screenshot.
 
 <br>
 
-## ✨ Overview
+##  Overview
 
 **SPIRAL (Nyx CLI)** is a sophisticated, production-grade autonomous AI coding system built for real-world robustness. It moves beyond standard LLM wrappers by featuring an intent-based dual-mode architecture, offering both conversational assistance and autonomous, multi-step execution. With integrated workspace memory, advanced testing systems, and a meticulously crafted UI, Nyx is your ultimate pair-programming companion.
 
 ---
 
-## ⚡ Key Features
+##  Key Features
 
-- 🎭 **Dual-Mode Architecture**: Seamlessly switch between **Agent Mode** (for autonomous, multi-step problem solving and iterative loops) and **Chat Mode** (for quick conversations and intent-based assistance).
-- 🧠 **Persistent Workspace Memory**: Never lose context. Nyx remembers past interactions, files read, and workspace states, allowing for true stateful problem-solving across development sessions.
-- 🛡️ **Rigorous Verification Pipeline**: Code execution isn't blindly trusted. Our internal verification agents evaluate outcomes, test for failures, and dynamically iterate until the objective is fully met.
-- 💜 **Stunning Aesthetic UI**: Designed with a sleek, premium purple-tinted aesthetic inspired by modern interfaces. Enjoy fluid input handling, real-time logging, and pixel-accurate rendering of our mascot, Nyx.
-- 🔄 **True Iterative Execution**: Instead of single-shot generation, the agent explores, plans, executes, and refines in a continuous, robust feedback loop to eliminate failures before returning control.
+-  **Dual-Mode Architecture**: Seamlessly switch between **Agent Mode** (for autonomous, multi-step problem solving and iterative loops) and **Chat Mode** (for quick conversations and intent-based assistance).
+-  **Persistent Workspace Memory**: Never lose context. Nyx remembers past interactions, files read, and workspace states, allowing for true stateful problem-solving across development sessions.
+-  **Rigorous Verification Pipeline**: Code execution isn't blindly trusted. Our internal verification agents evaluate outcomes, test for failures, and dynamically iterate until the objective is fully met.
+-  **Stunning Aesthetic UI**: Designed with a sleek, premium purple-tinted aesthetic inspired by modern interfaces. Enjoy fluid input handling, real-time logging, and pixel-accurate rendering of our mascot, Nyx.
+-  **True Iterative Execution**: Instead of single-shot generation, the agent explores, plans, executes, and refines in a continuous, robust feedback loop to eliminate failures before returning control.
 
 ---
 
-## 📦 Installation
+##  Installation
 
 Ensure you have Python 3.10 or higher installed.
 
@@ -73,7 +73,7 @@ Ensure you have Python 3.10 or higher installed.
 
 ---
 
-## 🚀 Usage
+##  Usage
 
 Launch the agent using the included startup script (which handles environment checks securely) or via Python:
 
