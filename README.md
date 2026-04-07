@@ -12,7 +12,6 @@ Replace the 'src' in the img tag below with the path to your actual screenshot.
 =======================================================================
 -->
 ![WhatsApp Image 2026-04-03 at 12 36 57 PM](https://github.com/user-attachments/assets/584d4ac1-c2f8-4cc7-9767-59c467ffb15b)
-style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"/>
 <br>
 <em>*The sleek, purple-themed, Claude-style interface featuring our pixel-accurate Nyx mascot.*</em>
 
