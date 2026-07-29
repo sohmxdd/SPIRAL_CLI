@@ -1,5 +1,5 @@
 import React from 'react'
-import { FileNode } from '../../../preload/index'
+import { FileNode } from '../types'
 import { FileTree } from './FileTree'
 import { FolderPlus, RefreshCw, Terminal as TerminalIcon, Sparkles } from 'lucide-react'
 

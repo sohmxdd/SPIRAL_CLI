@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { SpiralAPI } from '../../preload/index'
+import { SpiralAPI } from './types'
 
 declare global {
   interface Window {
