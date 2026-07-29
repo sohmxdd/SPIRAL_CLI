@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Copy, Check, Sparkles, User, Terminal, ChevronDown, ChevronRight } from 'lucide-react'
+import { Copy, Check, Bot, User, Terminal, ChevronDown, ChevronRight } from 'lucide-react'
 
 export interface Message {
   id: string
@@ -12,8 +12,77 @@ export interface Message {
   timestamp: Date
 }
 
-export function stripAnsi(str: string): string {
-  return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+// Filter output stream to remove CLI ASCII banner, startup headers, and prompt box borders
+export function filterStreamContent(raw: string): { cleanText: string; cleanLogs: string } {
+  // Strip ANSI escape sequences first
+  const noAnsi = raw.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+  const lines = noAnsi.split(/\r?\n/)
+
+  const textLines: string[] = []
+  const logLines: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    // 1. Filter out ASCII Banner & Startup Info
+    if (
+      trimmed.includes('████') ||
+      trimmed.includes('Autonomous Coding Agent') ||
+      trimmed.includes('Powered by Groq') ||
+      trimmed.includes('Guided by Nyx') ||
+      trimmed.includes('Welcome back!') ||
+      trimmed.includes('Tips for getting started') ||
+      trimmed.includes('Type a task to enter Agent Mode') ||
+      trimmed.includes('Ask a question for Chat Mode') ||
+      trimmed.includes('Type /help for all commands') ||
+      trimmed.includes('SPIRAL Commands') ||
+      trimmed.includes('Recent activity') ||
+      trimmed.includes('Groq connected') ||
+      (trimmed.includes('Model') && trimmed.includes('llama')) ||
+      trimmed.includes('Working Dir') ||
+      trimmed.includes('Token Budget') ||
+      (trimmed.includes('Context') && trimmed.includes('files'))
+    ) {
+      continue
+    }
+
+    // 2. Filter out Terminal Prompt Box borders & input prompts
+    if (
+      trimmed.startsWith('╭─') ||
+      trimmed.startsWith('╰─') ||
+      trimmed.startsWith('╭──') ||
+      trimmed.startsWith('╰──') ||
+      trimmed.includes('(spiral) ➤') ||
+      trimmed.includes('(spiral) >') ||
+      trimmed === '│' ||
+      trimmed.startsWith('│ (spiral)')
+    ) {
+      continue
+    }
+
+    // 3. Route intermediate progress / status lines to execution logs
+    if (
+      trimmed.startsWith('Analyzing intent') ||
+      trimmed.startsWith('Thinking') ||
+      trimmed.startsWith('[Nyx') ||
+      trimmed.startsWith('[CHAT]') ||
+      trimmed.startsWith('[AGENT]') ||
+      trimmed.startsWith('[INTENT]') ||
+      trimmed.startsWith('[PLAN]') ||
+      trimmed.startsWith('[STEP]')
+    ) {
+      logLines.push(trimmed)
+      continue
+    }
+
+    // 4. Genuine assistant response line
+    textLines.push(line)
+  }
+
+  const cleanText = textLines.join('\n').replace(/^\n+/, '').replace(/\n+$/, '')
+  const cleanLogs = logLines.join('\n')
+
+  return { cleanText, cleanLogs }
 }
 
 const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, value }) => {
@@ -27,7 +96,7 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
 
   return (
     <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 bg-[#141416] shadow-sm">
-      <div className="flex items-center justify-between px-4 py-1.5 bg-[#1b1b1e] border-b border-zinc-800/80 text-xs text-zinc-400 font-mono">
+      <div className="flex items-center justify-between px-4 py-1.5 bg-[#1b1b1e] border-b border-zinc-800/80 text-xs text-zinc-400 font-mono select-none">
         <span className="text-zinc-300 font-medium">{language || 'code'}</span>
         <button
           onClick={handleCopy}
@@ -57,7 +126,11 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
   const [showLogs, setShowLogs] = useState(false)
   const isUser = message.sender === 'user'
 
-  const cleanContent = stripAnsi(message.content)
+  const { cleanText, cleanLogs } = isUser
+    ? { cleanText: message.content, cleanLogs: '' }
+    : filterStreamContent(message.content)
+
+  const rawLogs = message.rawLogs || cleanLogs
 
   return (
     <div className={`py-4 px-4 sm:px-8 flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -70,7 +143,7 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
               : 'bg-purple-600/20 border border-purple-500/40 text-purple-400'
           }`}
         >
-          {isUser ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
         </div>
 
         {/* Content Box */}
@@ -91,8 +164,8 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
             }`}
           >
             {isUser ? (
-              <p className="whitespace-pre-wrap">{cleanContent}</p>
-            ) : (
+              <p className="whitespace-pre-wrap">{cleanText}</p>
+            ) : cleanText ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -129,13 +202,15 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
                   }
                 }}
               >
-                {cleanContent}
+                {cleanText}
               </ReactMarkdown>
+            ) : (
+              !message.isStreaming && <p className="italic text-zinc-500 text-xs">Response completed.</p>
             )}
           </div>
 
           {/* Collapsible Execution Logs for Assistant */}
-          {!isUser && message.rawLogs && (
+          {!isUser && rawLogs && (
             <div className="mt-2 clear-both">
               <button
                 onClick={() => setShowLogs(!showLogs)}
@@ -148,7 +223,7 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
 
               {showLogs && (
                 <div className="mt-1.5 p-3 bg-[#141416] border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-400 max-h-48 overflow-y-auto whitespace-pre-wrap">
-                  {stripAnsi(message.rawLogs)}
+                  {rawLogs}
                 </div>
               )}
             </div>

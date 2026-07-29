@@ -31,13 +31,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onSelectDirectory,
   onRefreshDirectory,
   onSelectFile,
-  recentChats = [
-    'Building an Electron JS project for Auto...',
-    'Project review and improvement suggestions',
-    'SPIRAL AI agent evaluation platform',
-    'Coding agent prompt routing',
-    'Dark theme palette design'
-  ]
+  recentChats = []
 }) => {
   const [showFiles, setShowFiles] = useState(false)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
@@ -57,7 +51,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
             <span>New chat</span>
           </button>
 
-          <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium">
+          <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium cursor-pointer">
             <Home className="w-4 h-4 text-zinc-300" />
             <span>Home</span>
           </div>
@@ -121,31 +115,22 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
 
         {/* Recents List */}
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-2 py-1">
-            Recents
-          </div>
-          {recentChats.map((chat, idx) => (
-            <div
-              key={idx}
-              className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-pointer transition-colors truncate"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-              <span className="truncate">{chat}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* User Profile Footer */}
-      <div className="p-3 border-t border-zinc-800/80 bg-[#141416]">
-        <div className="flex items-center space-x-2 px-2 py-1.5 hover:bg-zinc-800/60 rounded-xl cursor-pointer transition-colors">
-          <div className="w-7 h-7 rounded-full bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 font-semibold text-xs">
-            S
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-zinc-200 truncate">Soham</div>
-            <div className="text-[10px] text-zinc-500">Pro Plan</div>
-          </div>
+          {recentChats.length > 0 && (
+            <>
+              <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-2 py-1">
+                Recents
+              </div>
+              {recentChats.map((chat, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-pointer transition-colors truncate"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <span className="truncate">{chat}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

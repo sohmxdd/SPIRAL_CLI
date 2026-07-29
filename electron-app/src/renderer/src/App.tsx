@@ -4,18 +4,14 @@ import { WelcomeScreen } from './components/WelcomeScreen'
 import { ChatMessageItem, Message } from './components/ChatMessage'
 import { ClaudeInput } from './components/ClaudeInput'
 import { FileNode } from './types'
-import { FolderOpen, Sparkles } from 'lucide-react'
+import { FolderOpen, Bot } from 'lucide-react'
 
 export default function App(): React.JSX.Element {
   const [currentDir, setCurrentDir] = useState<string | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [isAgentRunning, setIsAgentRunning] = useState<boolean>(false)
   const [messages, setMessages] = useState<Message[]>([])
-  const [recentChats, setRecentChats] = useState<string[]>([
-    'Building an Electron JS project for Auto...',
-    'Project review and improvement suggestions',
-    'SPIRAL AI agent evaluation platform'
-  ])
+  const [recentChats, setRecentChats] = useState<string[]>([])
 
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const activeMessageIdRef = useRef<string | null>(null)
@@ -86,9 +82,9 @@ export default function App(): React.JSX.Element {
     setMessages((prev) => [...prev, userMsg, assistantMsg])
 
     // Update recent chats
-    if (userText.length > 5) {
+    if (userText.length > 3) {
       const title = userText.slice(0, 35) + (userText.length > 35 ? '...' : '')
-      setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 4)])
+      setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 9)])
     }
 
     // Ensure agent is running
@@ -190,8 +186,8 @@ export default function App(): React.JSX.Element {
         {/* Top Bar */}
         <div className="h-10 border-b border-zinc-800/60 bg-[#18181b] px-4 flex items-center justify-between select-none">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-xs font-medium text-zinc-300">SPIRAL Claude Interface</span>
+            <Bot className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-medium text-zinc-300">Claude Assistant</span>
             {currentDir && (
               <span className="text-xs text-zinc-500 flex items-center space-x-1 pl-2 border-l border-zinc-800">
                 <FolderOpen className="w-3 h-3 text-purple-400" />
