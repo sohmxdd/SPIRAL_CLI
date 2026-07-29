@@ -1,22 +1,30 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { agentManager } from './agentManager'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 850,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hiddenInset',
+    backgroundColor: '#18181b',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
   })
 
+  agentManager.setWindow(mainWindow)
+
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  mainWindow.on('close', () => {
+    agentManager.killAgent()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -33,6 +41,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.spiral.gui')
+  agentManager.setupIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -45,7 +54,12 @@ app.whenReady().then(() => {
   })
 })
 
+app.on('before-quit', () => {
+  agentManager.killAgent()
+})
+
 app.on('window-all-closed', () => {
+  agentManager.killAgent()
   if (process.platform !== 'darwin') {
     app.quit()
   }
