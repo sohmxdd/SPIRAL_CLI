@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Presentation Guide (Ignored)
+EXPLANATION.md
+
+
 # C extensions
 *.so
 
