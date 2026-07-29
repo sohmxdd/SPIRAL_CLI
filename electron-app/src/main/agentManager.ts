@@ -147,6 +147,10 @@ export class AgentManager {
     ipcMain.handle('agent:kill', async () => {
       return this.killAgent()
     })
+
+    ipcMain.handle('agent:isRunning', async () => {
+      return this.currentChild !== null
+    })
   }
 
   private readDirectoryTree(dirPath: string, depth = 0): FileNode[] {

@@ -14,6 +14,7 @@ export interface SpiralAPI {
   spawnAgent: (cwd?: string) => Promise<{ success: boolean; error?: string }>
   sendInput: (text: string) => Promise<boolean>
   killAgent: () => Promise<boolean>
+  isAgentRunning: () => Promise<boolean>
   onAgentStdout: (callback: (data: string) => void) => () => void
   onAgentStderr: (callback: (data: string) => void) => () => void
   onAgentExit: (callback: (code: number | null) => void) => () => void
@@ -26,6 +27,7 @@ const api: SpiralAPI = {
   spawnAgent: (cwd?: string) => ipcRenderer.invoke('agent:spawn', cwd),
   sendInput: (text: string) => ipcRenderer.invoke('agent:sendInput', text),
   killAgent: () => ipcRenderer.invoke('agent:kill'),
+  isAgentRunning: () => ipcRenderer.invoke('agent:isRunning'),
   onAgentStdout: (callback: (data: string) => void) => {
     const handler = (_: any, data: string): void => callback(data)
     ipcRenderer.on('agent:stdout', handler)
