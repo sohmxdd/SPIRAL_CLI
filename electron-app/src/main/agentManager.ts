@@ -54,7 +54,12 @@ export class AgentManager {
     try {
       this.currentChild = spawn(pythonExe, ['-u', mainPyPath], {
         cwd: workingDir,
-        env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1',
+          PYTHONIOENCODING: 'utf-8',
+          PYTHONUTF8: '1'
+        }
       })
 
       this.currentChild.stdout.on('data', (chunk: Buffer) => {

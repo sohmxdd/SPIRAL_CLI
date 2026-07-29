@@ -1,15 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { Terminal } from './components/Terminal'
-import { InputBar } from './components/InputBar'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { ClaudeSidebar } from './components/ClaudeSidebar'
+import { WelcomeScreen } from './components/WelcomeScreen'
+import { ChatMessageItem, Message } from './components/ChatMessage'
+import { ClaudeInput } from './components/ClaudeInput'
 import { FileNode } from './types'
-import { Play, Square, FolderOpen, RotateCcw } from 'lucide-react'
+import { FolderOpen, Sparkles } from 'lucide-react'
 
 export default function App(): React.JSX.Element {
   const [currentDir, setCurrentDir] = useState<string | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [isAgentRunning, setIsAgentRunning] = useState<boolean>(false)
-  const [terminalKey, setTerminalKey] = useState<number>(0)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [recentChats, setRecentChats] = useState<string[]>([
+    'Building an Electron JS project for Auto...',
+    'Project review and improvement suggestions',
+    'SPIRAL AI agent evaluation platform'
+  ])
+
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const activeMessageIdRef = useRef<string | null>(null)
 
   // Load directory tree
   const loadDirectoryTree = useCallback(async (dirPath: string) => {
@@ -28,157 +37,213 @@ export default function App(): React.JSX.Element {
       if (selected) {
         setCurrentDir(selected)
         await loadDirectoryTree(selected)
-        // Spawn agent in selected cwd
-        const res = await window.api.spawnAgent(selected)
-        if (res.success) {
-          setIsAgentRunning(true)
-        }
+        await window.api.spawnAgent(selected)
+        setIsAgentRunning(true)
       }
     } catch (err) {
       console.error('Error selecting directory:', err)
     }
   }
 
-  // Refresh current directory
   const handleRefreshDirectory = async (): Promise<void> => {
     if (currentDir) {
       await loadDirectoryTree(currentDir)
     }
   }
 
-  // Spawn/Restart Agent Process
-  const handleStartAgent = async (): Promise<void> => {
-    const res = await window.api.spawnAgent(currentDir || undefined)
-    if (res.success) {
-      setIsAgentRunning(true)
-    }
-  }
-
-  // Stop Agent Process
   const handleStopAgent = async (): Promise<void> => {
     await window.api.killAgent()
     setIsAgentRunning(false)
+    setMessages((prev) =>
+      prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
+    )
   }
 
-  // Send message or task
-  const handleSendMessage = async (msg: string): Promise<void> => {
-    if (!isAgentRunning) {
+  const handleNewChat = (): void => {
+    setMessages([])
+    activeMessageIdRef.current = null
+  }
+
+  const handleSendMessage = async (userText: string): Promise<void> => {
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      content: userText,
+      timestamp: new Date()
+    }
+
+    const assistantId = (Date.now() + 1).toString()
+    const assistantMsg: Message = {
+      id: assistantId,
+      sender: 'assistant',
+      content: '',
+      rawLogs: '',
+      isStreaming: true,
+      timestamp: new Date()
+    }
+
+    activeMessageIdRef.current = assistantId
+    setMessages((prev) => [...prev, userMsg, assistantMsg])
+
+    // Update recent chats
+    if (userText.length > 5) {
+      const title = userText.slice(0, 35) + (userText.length > 35 ? '...' : '')
+      setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 4)])
+    }
+
+    // Ensure agent is running
+    const running = await window.api.isAgentRunning()
+    if (!running) {
       const res = await window.api.spawnAgent(currentDir || undefined)
       if (res.success) {
         setIsAgentRunning(true)
         setTimeout(() => {
-          window.api.sendInput(msg)
+          window.api.sendInput(userText)
         }, 500)
       }
     } else {
-      await window.api.sendInput(msg)
+      await window.api.sendInput(userText)
     }
   }
 
-  // Clear Terminal
-  const handleClearTerminal = (): void => {
-    setTerminalKey((prev) => prev + 1)
-  }
-
-  // Handle clicking file in tree
   const handleSelectFileFromTree = (file: FileNode): void => {
     let displayPath = file.path
     if (currentDir && file.path.startsWith(currentDir)) {
       displayPath = file.path.slice(currentDir.length).replace(/^[/\\]/, '')
     }
-    window.api.sendInput(`/read ${displayPath}`)
+    handleSendMessage(`/read ${displayPath}`)
   }
 
-  // Check initial process state & exit listeners
+  // Subscribe to stdout/stderr IPC streams
   useEffect(() => {
+    const unbindStdout = window.api.onAgentStdout((chunk: string) => {
+      const currentId = activeMessageIdRef.current
+      if (!currentId) return
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === currentId) {
+            return {
+              ...msg,
+              content: msg.content + chunk,
+              rawLogs: (msg.rawLogs || '') + chunk
+            }
+          }
+          return msg
+        })
+      )
+    })
+
+    const unbindStderr = window.api.onAgentStderr((chunk: string) => {
+      const currentId = activeMessageIdRef.current
+      if (!currentId) return
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === currentId) {
+            return {
+              ...msg,
+              rawLogs: (msg.rawLogs || '') + `\n[STDERR] ${chunk}`
+            }
+          }
+          return msg
+        })
+      )
+    })
+
     const unbindExit = window.api.onAgentExit(() => {
       setIsAgentRunning(false)
+      setMessages((prev) =>
+        prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
+      )
     })
 
     return () => {
+      unbindStdout()
+      unbindStderr()
       unbindExit()
     }
   }, [])
 
+  // Auto-scroll on new messages
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+  }, [messages])
+
   return (
     <div className="flex h-screen w-screen bg-[#18181b] text-zinc-100 overflow-hidden font-sans">
       {/* Left Sidebar */}
-      <Sidebar
+      <ClaudeSidebar
         currentDir={currentDir}
         fileTree={fileTree}
+        onNewChat={handleNewChat}
         onSelectDirectory={handleSelectDirectory}
         onRefreshDirectory={handleRefreshDirectory}
         onSelectFile={handleSelectFileFromTree}
+        recentChats={recentChats}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-[#18181b]">
-        {/* Top Header Bar */}
-        <div className="h-12 border-b border-zinc-800/80 bg-[#141416] px-4 flex items-center justify-between select-none">
-          <div className="flex items-center space-x-3 truncate">
-            <div className="flex items-center space-x-2">
-              <span
-                className={`w-2.5 h-2.5 rounded-full ${
-                  isAgentRunning ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'
-                }`}
-              />
-              <span className="text-xs font-semibold text-zinc-200">
-                {isAgentRunning ? 'SPIRAL Agent Active' : 'Agent Idle'}
-              </span>
-            </div>
-
+        {/* Top Bar */}
+        <div className="h-10 border-b border-zinc-800/60 bg-[#18181b] px-4 flex items-center justify-between select-none">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-medium text-zinc-300">SPIRAL Claude Interface</span>
             {currentDir && (
-              <div className="flex items-center space-x-1 text-xs text-zinc-400 truncate pl-3 border-l border-zinc-800">
-                <FolderOpen className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <span className="truncate font-mono text-[11px]">{currentDir}</span>
-              </div>
+              <span className="text-xs text-zinc-500 flex items-center space-x-1 pl-2 border-l border-zinc-800">
+                <FolderOpen className="w-3 h-3 text-purple-400" />
+                <span className="font-mono text-[11px] truncate max-w-xs">{currentDir}</span>
+              </span>
             )}
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleClearTerminal}
-              title="Clear Terminal View"
-              className="flex items-center space-x-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear</span>
-            </button>
-
-            {isAgentRunning ? (
-              <button
-                onClick={handleStopAgent}
-                title="Stop Agent"
-                className="flex items-center space-x-1 px-2.5 py-1 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/40 rounded-lg text-xs transition-colors"
-              >
-                <Square className="w-3 h-3 fill-current" />
-                <span>Stop</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleStartAgent}
-                title="Launch SPIRAL Agent"
-                className="flex items-center space-x-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs transition-colors shadow-sm"
-              >
-                <Play className="w-3 h-3 fill-current" />
-                <span>Start Agent</span>
-              </button>
-            )}
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isAgentRunning ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'
+              }`}
+            />
+            <span className="text-[11px] text-zinc-400">
+              {isAgentRunning ? 'Agent Active' : 'Ready'}
+            </span>
           </div>
         </div>
 
-        {/* xterm.js Terminal Viewport */}
-        <div className="flex-1 relative min-h-0 bg-[#18181b]">
-          <Terminal key={terminalKey} />
-        </div>
+        {/* Chat Body */}
+        {messages.length === 0 ? (
+          <div className="flex-1 flex flex-col justify-between py-12">
+            <WelcomeScreen />
+            <ClaudeInput
+              onSendMessage={handleSendMessage}
+              onStopAgent={handleStopAgent}
+              isAgentRunning={isAgentRunning}
+              currentDir={currentDir}
+              centered
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Scrollable Message List */}
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
+              <div className="max-w-4xl mx-auto space-y-4">
+                {messages.map((msg) => (
+                  <ChatMessageItem key={msg.id} message={msg} />
+                ))}
+              </div>
+            </div>
 
-        {/* Claude-style Bottom Input Bar */}
-        <InputBar
-          onSendMessage={handleSendMessage}
-          onStopAgent={handleStopAgent}
-          isAgentRunning={isAgentRunning}
-          currentDir={currentDir}
-        />
+            {/* Bottom Floating Input Bar */}
+            <ClaudeInput
+              onSendMessage={handleSendMessage}
+              onStopAgent={handleStopAgent}
+              isAgentRunning={isAgentRunning}
+              currentDir={currentDir}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
