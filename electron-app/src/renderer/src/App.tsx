@@ -201,7 +201,7 @@ export default function App(): React.JSX.Element {
 
         {/* Chat Body */}
         {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col justify-between py-12">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
             <WelcomeScreen />
             <ClaudeInput
               onSendMessage={handleSendMessage}
