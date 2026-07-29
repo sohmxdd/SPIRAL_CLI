@@ -187,24 +187,15 @@ export default function App(): React.JSX.Element {
         <div className="h-10 border-b border-zinc-800/60 bg-[#18181b] px-4 flex items-center justify-between select-none">
           <div className="flex items-center space-x-2">
             <Bot className="w-4 h-4 text-purple-400" />
-            <span className="text-xs font-medium text-zinc-300">Claude Assistant</span>
+            <span className="text-xs font-medium text-purple-300 font-semibold">SPIRAL</span>
+            <span className="text-xs text-zinc-500">•</span>
+            <span className="text-xs text-zinc-400">Inference burning hot</span>
             {currentDir && (
               <span className="text-xs text-zinc-500 flex items-center space-x-1 pl-2 border-l border-zinc-800">
                 <FolderOpen className="w-3 h-3 text-purple-400" />
                 <span className="font-mono text-[11px] truncate max-w-xs">{currentDir}</span>
               </span>
             )}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isAgentRunning ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'
-              }`}
-            />
-            <span className="text-[11px] text-zinc-400">
-              {isAgentRunning ? 'Agent Active' : 'Ready'}
-            </span>
           </div>
         </div>
 

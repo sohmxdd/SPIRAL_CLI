@@ -12,7 +12,7 @@ export const WelcomeScreen: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto px-4 text-center select-none">
       <div className="flex items-center justify-center space-x-3 mb-6">
-        <span className="text-3xl sm:text-4xl text-amber-500 font-serif">✳</span>
+        <span className="text-3xl sm:text-4xl text-purple-400 font-serif">✳</span>
         <h1 className="text-3xl sm:text-4xl font-serif tracking-tight text-zinc-100 font-normal">
           {getGreeting()}
         </h1>
