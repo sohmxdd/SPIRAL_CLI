@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import 'highlight.js/styles/atom-one-dark.css'
 import { Copy, Check, Bot, User, Terminal, ChevronDown, ChevronRight } from 'lucide-react'
 
 export interface Message {
@@ -219,6 +221,7 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
             ) : cleanText ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
                 components={{
                   // Code blocks: detect by presence of className (```lang) or multiline children
                   code({ className, children, ...props }: any) {
