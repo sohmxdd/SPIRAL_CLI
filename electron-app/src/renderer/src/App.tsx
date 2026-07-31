@@ -18,6 +18,9 @@ export default function App(): React.JSX.Element {
   const [recentChats, setRecentChats] = useState<string[]>([])
   const [planState, setPlanState] = useState<ParsedPlanState | null>(null)
 
+  // Track whether the FIRST message of a conversation has been recorded to recents
+  const conversationTitleRef = useRef<string | null>(null)
+
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const activeMessageIdRef = useRef<string | null>(null)
 
@@ -31,20 +34,14 @@ export default function App(): React.JSX.Element {
     }
   }, [])
 
-  // Select working directory
+  // Select working directory (does NOT auto-spawn agent — that happens on first send)
   const handleSelectDirectory = async (): Promise<string | null> => {
     try {
       const selected = await window.api.selectDirectory()
       if (selected) {
         setCurrentDir(selected)
         await loadDirectoryTree(selected)
-        const res = await window.api.spawnAgent(selected)
-        if (res.success) {
-          setIsAgentRunning(true)
-          setErrorMessage(null)
-        } else {
-          setErrorMessage(res.error || 'Failed to spawn Python agent process.')
-        }
+        setErrorMessage(null)
         return selected
       }
     } catch (err: any) {
@@ -71,20 +68,11 @@ export default function App(): React.JSX.Element {
     setMessages([])
     setPlanState(null)
     activeMessageIdRef.current = null
+    conversationTitleRef.current = null
   }
 
   const handleSendMessage = async (userText: string): Promise<void> => {
     setErrorMessage(null)
-
-    // Enforce workspace directory selection
-    let activeDir = currentDir
-    if (!activeDir) {
-      activeDir = await handleSelectDirectory()
-      if (!activeDir) {
-        setErrorMessage('Please select a working directory folder to proceed.')
-        return
-      }
-    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -106,16 +94,17 @@ export default function App(): React.JSX.Element {
     activeMessageIdRef.current = assistantId
     setMessages((prev) => [...prev, userMsg, assistantMsg])
 
-    // Update recent chats
-    if (userText.length > 3) {
+    // Only record the FIRST message of a conversation as a recent chat entry
+    if (!conversationTitleRef.current && userText.length > 3) {
       const title = userText.slice(0, 35) + (userText.length > 35 ? '...' : '')
+      conversationTitleRef.current = title
       setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 9)])
     }
 
     // Ensure agent process is active
     const running = await window.api.isAgentRunning()
     if (!running) {
-      const res = await window.api.spawnAgent(activeDir || undefined)
+      const res = await window.api.spawnAgent(currentDir || undefined)
       if (res.success) {
         setIsAgentRunning(true)
         setTimeout(() => {
@@ -223,7 +212,6 @@ export default function App(): React.JSX.Element {
         onRefreshDirectory={handleRefreshDirectory}
         onSelectFile={handleSelectFileFromTree}
         recentChats={recentChats}
-        onSelectRecentChat={(title) => handleSendMessage(title)}
       />
 
       {/* Main Content Area */}

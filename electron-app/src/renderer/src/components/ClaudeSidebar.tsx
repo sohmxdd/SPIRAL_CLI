@@ -19,7 +19,6 @@ interface ClaudeSidebarProps {
   onRefreshDirectory: () => void
   onSelectFile?: (file: FileNode) => void
   recentChats?: string[]
-  onSelectRecentChat?: (title: string) => void
 }
 
 export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
@@ -29,8 +28,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onSelectDirectory,
   onRefreshDirectory,
   onSelectFile,
-  recentChats = [],
-  onSelectRecentChat
+  recentChats = []
 }) => {
   const [showFiles, setShowFiles] = useState(false)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
@@ -110,8 +108,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
               {recentChats.map((chat, idx) => (
                 <div
                   key={idx}
-                  onClick={() => onSelectRecentChat && onSelectRecentChat(chat)}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-pointer transition-colors truncate"
+                  className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-default transition-colors truncate"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                   <span className="truncate">{chat}</span>
@@ -120,26 +117,8 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
             </>
           )}
         </div>
-
-        {/* MCP & Skills Capabilities Status Footer */}
-        <div className="p-3 border-t border-zinc-800/80 bg-[#141416]/80 text-[11px]">
-          <div className="flex items-center justify-between text-zinc-400 mb-1.5 font-medium">
-            <span className="flex items-center space-x-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-zinc-200 font-semibold">MCP & Skills Active</span>
-            </span>
-            <span className="text-[10px] text-purple-400 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/40">
-              v3.0
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1 text-[10px] font-mono text-zinc-400">
-            <span className="bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/50">file_tool</span>
-            <span className="bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/50">exec_tool</span>
-            <span className="bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700/50">terminal_tool</span>
-            <span className="bg-purple-950/60 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/40">mcp_servers</span>
-          </div>
-        </div>
       </div>
     </div>
   )
 }
+

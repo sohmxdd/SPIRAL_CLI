@@ -12,7 +12,8 @@ export interface Message {
   timestamp: Date
 }
 
-// Filter output stream to remove CLI ASCII banner, startup headers, and prompt box borders
+// Filter output stream to remove CLI noise, thinking/status lines, ASCII banners, and prompt borders.
+// Thinking/planning lines are now rendered by the AgentPlanning UI component — they must NOT leak into chat bubbles.
 export function filterStreamContent(raw: string): { cleanText: string; cleanLogs: string } {
   // Strip ANSI escape sequences first
   const noAnsi = raw.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
@@ -23,6 +24,9 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
 
   for (const line of lines) {
     const trimmed = line.trim()
+
+    // Skip empty lines at the start (they accumulate from filtered blocks)
+    if (!trimmed && textLines.length === 0) continue
 
     // 1. Filter out ASCII Banner & Startup Info
     if (
@@ -41,7 +45,10 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       (trimmed.includes('Model') && trimmed.includes('llama')) ||
       trimmed.includes('Working Dir') ||
       trimmed.includes('Token Budget') ||
-      (trimmed.includes('Context') && trimmed.includes('files'))
+      (trimmed.includes('Context') && trimmed.includes('files')) ||
+      trimmed.includes('System nominal') ||
+      trimmed.includes('files online') ||
+      trimmed.includes('Ready to assist')
     ) {
       continue
     }
@@ -55,21 +62,41 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.includes('(spiral) ➤') ||
       trimmed.includes('(spiral) >') ||
       trimmed === '│' ||
-      trimmed.startsWith('│ (spiral)')
+      trimmed.startsWith('│ (spiral)') ||
+      trimmed.startsWith('━━━') ||
+      trimmed.startsWith('───')
     ) {
       continue
     }
 
-    // 3. Route intermediate progress / status lines to execution logs
+    // 3. COMPLETELY FILTER all thinking/planning/status noise (now handled by AgentPlanning UI)
     if (
       trimmed.startsWith('Analyzing intent') ||
       trimmed.startsWith('Thinking') ||
+      trimmed === 'Thinking...' ||
       trimmed.startsWith('[Nyx') ||
       trimmed.startsWith('[CHAT]') ||
       trimmed.startsWith('[AGENT]') ||
       trimmed.startsWith('[INTENT]') ||
       trimmed.startsWith('[PLAN]') ||
-      trimmed.startsWith('[STEP]')
+      trimmed.startsWith('[STEP]') ||
+      trimmed.startsWith('[DEBUG]') ||
+      trimmed.startsWith('[VERIFY]') ||
+      trimmed.startsWith('[TEST]') ||
+      trimmed.startsWith('[REFLECT]') ||
+      trimmed.startsWith('nyx.') ||
+      trimmed.startsWith('Step ') && /Step \d+\/\d+/.test(trimmed) ||
+      trimmed.includes('Generating plan') ||
+      trimmed.includes('Task complete') ||
+      trimmed.includes('intent_detected') ||
+      trimmed.includes('error_detected') ||
+      trimmed.includes('step_start') ||
+      trimmed.includes('PlannerAgent') ||
+      trimmed.includes('CoderAgent') ||
+      trimmed.includes('TesterAgent') ||
+      trimmed.includes('VerifierAgent') ||
+      trimmed.includes('DebuggerAgent') ||
+      trimmed.includes('ReflectorAgent')
     ) {
       logLines.push(trimmed)
       continue
@@ -79,7 +106,7 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
     textLines.push(line)
   }
 
-  const cleanText = textLines.join('\n').replace(/^\n+/, '').replace(/\n+$/, '')
+  const cleanText = textLines.join('\n').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '')
   const cleanLogs = logLines.join('\n')
 
   return { cleanText, cleanLogs }
