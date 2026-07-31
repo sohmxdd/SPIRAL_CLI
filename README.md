@@ -85,6 +85,31 @@ Once running, state your objective, and Nyx will autonomously plan, execute, and
 
 ---
 
+## 🖥️ Electron Desktop GUI (Claude-Inspired UI)
+
+In addition to the terminal CLI, SPIRAL features a desktop GUI built with **Electron, Vite, React (TypeScript), Tailwind CSS, and shadcn/ui**, styled after Claude's dark theme interface.
+
+### ✨ Desktop GUI Highlights
+- **Structured Subagent Thinking Timeline**: Live step-by-step progress timeline powered by 21st.dev `AgentPlanning`, streaming real-time subagent states (`PlannerAgent`, `CoderAgent`, `TesterAgent`, `VerifierAgent`, `DebuggerAgent`, `ReflectorAgent`).
+- **Ground-Truth Terminal View (xterm.js)**: Toggleable side-by-side xterm.js viewport rendering raw ANSI terminal streams natively alongside the structured chat view.
+- **Interactive Workspace Explorer**: Sidebar directory tree that auto-refreshes in real-time as the agent generates, modifies, or creates files in your selected workspace folder.
+- **Slash Commands & MCP Integration**: Interactive autocomplete menu (`/help`, `/status`, `/reset`, `/files`, `/model`, `/clear`) with quick command chips and Model Context Protocol (MCP) server support.
+
+### ⚡ Running the Desktop App
+
+```bash
+# Navigate to the electron directory
+cd electron-app
+
+# Install Node dependencies
+npm install
+
+# Launch the desktop app in development mode
+npm run dev
+```
+
+---
+
 ## 🏗️ Architecture Under the Hood
 
 The SPIRAL architecture relies on clearly structured, decoupled components:
@@ -93,6 +118,8 @@ The SPIRAL architecture relies on clearly structured, decoupled components:
 - `llm/`: Handles dynamic and structured communications with large language models.
 - `memory/`: Disk-backed workspace tracking mechanism that commits context safely to `.spiral_memory.json`.
 - `ui/` & `mascot/`: Controls the interactive terminal user interface, responsive formatting, and sprite rendering.
+- `electron-app/`: Desktop GUI wrapper providing Node.js IPC process spawning, xterm.js stdout streaming, and React timeline UI.
+
 
 ---
 
