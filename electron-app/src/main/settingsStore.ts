@@ -7,28 +7,6 @@ export interface SettingsData {
   systemPrompt?: string
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are Nyx, the AI guide of SPIRAL — an autonomous coding agent.
-
-Personality:
-- Calm, intelligent, slightly witty
-- Speaks in concise, sharp sentences
-- Uses technical language naturally
-- Helpful but never over-explains
-- You ARE the system — not a separate entity
-
-When answering questions:
-- Be direct and informative
-- Include code snippets when relevant (use proper formatting)
-- For coding questions, give working examples
-- Keep answers focused — no fluff
-
-When responding to casual input:
-- Be brief and personable
-- Stay in character as a system presence
-- Light humor is welcome
-
-Always respond as Nyx. Never break character.`
-
 export class SettingsStore {
   private getSettingsPath(): string {
     const dir = app.getPath('userData')
@@ -97,10 +75,10 @@ export class SettingsStore {
     this.writeRawSettings(data)
   }
 
-  /** Get System Prompt (personality override) */
+  /** Get System Prompt (additive personality directives) */
   public getSystemPrompt(): string {
     const data = this.readRawSettings()
-    return data.systemPrompt !== undefined ? data.systemPrompt : DEFAULT_SYSTEM_PROMPT
+    return data.systemPrompt !== undefined ? data.systemPrompt : ''
   }
 
   /** Set System Prompt */

@@ -13,28 +13,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, onSettingsS
   const [isSaving, setIsSaving] = useState(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
 
-  const DEFAULT_PROMPT = `You are Nyx, the AI guide of SPIRAL — an autonomous coding agent.
-
-Personality:
-- Calm, intelligent, slightly witty
-- Speaks in concise, sharp sentences
-- Uses technical language naturally
-- Helpful but never over-explains
-- You ARE the system — not a separate entity
-
-When answering questions:
-- Be direct and informative
-- Include code snippets when relevant (use proper formatting)
-- For coding questions, give working examples
-- Keep answers focused — no fluff
-
-When responding to casual input:
-- Be brief and personable
-- Stay in character as a system presence
-- Light humor is welcome
-
-Always respond as Nyx. Never break character.`
-
   useEffect(() => {
     loadSettings()
   }, [])
@@ -44,7 +22,7 @@ Always respond as Nyx. Never break character.`
       const key = await window.api.getGroqKey()
       const prompt = await window.api.getSystemPrompt()
       setApiKey(key || '')
-      setSystemPrompt(prompt || DEFAULT_PROMPT)
+      setSystemPrompt(prompt || '')
     } catch (err) {
       console.error('Failed to load settings:', err)
     }
@@ -64,10 +42,6 @@ Always respond as Nyx. Never break character.`
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handleResetPrompt = (): void => {
-    setSystemPrompt(DEFAULT_PROMPT)
   }
 
   return (
@@ -144,31 +118,32 @@ Always respond as Nyx. Never break character.`
           </div>
         </div>
 
-        {/* Section 2: System Prompt & Personality Override */}
+        {/* Section 2: Additive Personality Directives */}
         <div className="bg-[#202024] border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
             <div className="flex items-center space-x-2">
               <Bot className="w-4 h-4 text-purple-400" />
-              <h2 className="text-sm font-semibold text-zinc-200">System Prompt & Personality</h2>
+              <h2 className="text-sm font-semibold text-zinc-200">Personality Directives (Additive)</h2>
             </div>
             <button
               type="button"
-              onClick={handleResetPrompt}
+              onClick={() => setSystemPrompt('')}
               className="flex items-center space-x-1 text-[11px] text-zinc-400 hover:text-purple-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
-              <span>Reset to default</span>
+              <span>Clear custom directives</span>
             </button>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-400">
-              Customize Nyx system prompt (injected via <code className="text-purple-300">CHAT_SYSTEM_PROMPT</code> env var)
+              Add personality on top of SPIRAL&apos;s default behavior (injected via <code className="text-purple-300">SPIRAL_PERSONALITY_PROMPT</code> env var)
             </label>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              rows={10}
+              placeholder="- Prefers concise bullet points&#10;- Always end responses with a brief summary"
+              rows={6}
               className="w-full bg-[#141416] border border-zinc-700/80 rounded-xl p-3 text-xs font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500 transition-colors resize-none leading-relaxed"
             />
           </div>

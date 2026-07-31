@@ -71,7 +71,7 @@ export class AgentManager {
     }
 
     if (userSystemPrompt) {
-      spawnEnv.CHAT_SYSTEM_PROMPT = userSystemPrompt
+      spawnEnv.SPIRAL_PERSONALITY_PROMPT = userSystemPrompt
     }
 
     try {
