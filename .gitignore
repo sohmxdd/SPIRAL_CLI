@@ -6,6 +6,10 @@ __pycache__/
 # Presentation Guide (Ignored)
 EXPLANATION.md
 
+# Test Workspace (Ignored)
+demo_workspace/
+
+
 
 # C extensions
 *.so

@@ -142,6 +142,14 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     const unbindStdout = window.api.onAgentStdout((chunk: string) => {
       const currentId = activeMessageIdRef.current
+
+      // Auto-refresh file tree on file modifications
+      if (chunk.includes('[FILE_OK]') || chunk.includes('Written:') || chunk.includes('Created:')) {
+        if (currentDir) {
+          loadDirectoryTree(currentDir)
+        }
+      }
+
       if (!currentId) return
 
       setMessages((prev) =>
