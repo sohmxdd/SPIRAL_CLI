@@ -4,9 +4,6 @@ import { FileTree } from './FileTree'
 import {
   Plus,
   Home,
-  Code2,
-  FolderKanban,
-  SlidersHorizontal,
   FolderPlus,
   RefreshCw,
   MessageSquare,
@@ -22,6 +19,7 @@ interface ClaudeSidebarProps {
   onRefreshDirectory: () => void
   onSelectFile?: (file: FileNode) => void
   recentChats?: string[]
+  onSelectRecentChat?: (title: string) => void
 }
 
 export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
@@ -31,7 +29,8 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onSelectDirectory,
   onRefreshDirectory,
   onSelectFile,
-  recentChats = []
+  recentChats = [],
+  onSelectRecentChat
 }) => {
   const [showFiles, setShowFiles] = useState(false)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
@@ -51,24 +50,12 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
             <span>New chat</span>
           </button>
 
-          <div className="flex items-center space-x-2 px-3 py-1.5 bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium cursor-pointer">
+          <div
+            onClick={onNewChat}
+            className="flex items-center space-x-2 px-3 py-1.5 bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium cursor-pointer"
+          >
             <Home className="w-4 h-4 text-zinc-300" />
             <span>Home</span>
-          </div>
-
-          <div className="flex items-center space-x-2 px-3 py-1.5 hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs transition-colors cursor-pointer">
-            <Code2 className="w-4 h-4" />
-            <span>Code</span>
-          </div>
-
-          <div className="flex items-center space-x-2 px-3 py-1.5 hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs transition-colors cursor-pointer">
-            <FolderKanban className="w-4 h-4" />
-            <span>Projects</span>
-          </div>
-
-          <div className="flex items-center space-x-2 px-3 py-1.5 hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs transition-colors cursor-pointer">
-            <SlidersHorizontal className="w-4 h-4" />
-            <span>Customize</span>
           </div>
         </div>
 
@@ -123,6 +110,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
               {recentChats.map((chat, idx) => (
                 <div
                   key={idx}
+                  onClick={() => onSelectRecentChat && onSelectRecentChat(chat)}
                   className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-pointer transition-colors truncate"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />

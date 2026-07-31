@@ -3,15 +3,20 @@ import { ClaudeSidebar } from './components/ClaudeSidebar'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ChatMessageItem, Message } from './components/ChatMessage'
 import { ClaudeInput } from './components/ClaudeInput'
-import { FileNode } from './types'
-import { FolderOpen, Bot } from 'lucide-react'
+import { Terminal } from './components/Terminal'
+import { AgentPlanning } from './components/ui/agent-planning'
+import { FileNode, ParsedPlanState } from './types'
+import { FolderOpen, Bot, TerminalSquare, AlertTriangle, X } from 'lucide-react'
 
 export default function App(): React.JSX.Element {
   const [currentDir, setCurrentDir] = useState<string | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [isAgentRunning, setIsAgentRunning] = useState<boolean>(false)
+  const [showTerminal, setShowTerminal] = useState<boolean>(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [recentChats, setRecentChats] = useState<string[]>([])
+  const [planState, setPlanState] = useState<ParsedPlanState | null>(null)
 
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const activeMessageIdRef = useRef<string | null>(null)
@@ -27,18 +32,25 @@ export default function App(): React.JSX.Element {
   }, [])
 
   // Select working directory
-  const handleSelectDirectory = async (): Promise<void> => {
+  const handleSelectDirectory = async (): Promise<string | null> => {
     try {
       const selected = await window.api.selectDirectory()
       if (selected) {
         setCurrentDir(selected)
         await loadDirectoryTree(selected)
-        await window.api.spawnAgent(selected)
-        setIsAgentRunning(true)
+        const res = await window.api.spawnAgent(selected)
+        if (res.success) {
+          setIsAgentRunning(true)
+          setErrorMessage(null)
+        } else {
+          setErrorMessage(res.error || 'Failed to spawn Python agent process.')
+        }
+        return selected
       }
-    } catch (err) {
-      console.error('Error selecting directory:', err)
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error selecting working directory.')
     }
+    return null
   }
 
   const handleRefreshDirectory = async (): Promise<void> => {
@@ -57,10 +69,23 @@ export default function App(): React.JSX.Element {
 
   const handleNewChat = (): void => {
     setMessages([])
+    setPlanState(null)
     activeMessageIdRef.current = null
   }
 
   const handleSendMessage = async (userText: string): Promise<void> => {
+    setErrorMessage(null)
+
+    // Enforce workspace directory selection
+    let activeDir = currentDir
+    if (!activeDir) {
+      activeDir = await handleSelectDirectory()
+      if (!activeDir) {
+        setErrorMessage('Please select a working directory folder to proceed.')
+        return
+      }
+    }
+
     const userMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
@@ -87,15 +112,18 @@ export default function App(): React.JSX.Element {
       setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 9)])
     }
 
-    // Ensure agent is running
+    // Ensure agent process is active
     const running = await window.api.isAgentRunning()
     if (!running) {
-      const res = await window.api.spawnAgent(currentDir || undefined)
+      const res = await window.api.spawnAgent(activeDir || undefined)
       if (res.success) {
         setIsAgentRunning(true)
         setTimeout(() => {
           window.api.sendInput(userText)
         }, 500)
+      } else {
+        setErrorMessage(res.error || 'Failed to start agent process.')
+        setIsAgentRunning(false)
       }
     } else {
       await window.api.sendInput(userText)
@@ -110,7 +138,7 @@ export default function App(): React.JSX.Element {
     handleSendMessage(`/read ${displayPath}`)
   }
 
-  // Subscribe to stdout/stderr IPC streams
+  // Subscribe to IPC streams & Plan updates
   useEffect(() => {
     const unbindStdout = window.api.onAgentStdout((chunk: string) => {
       const currentId = activeMessageIdRef.current
@@ -147,17 +175,25 @@ export default function App(): React.JSX.Element {
       )
     })
 
-    const unbindExit = window.api.onAgentExit(() => {
+    const unbindExit = window.api.onAgentExit((code) => {
       setIsAgentRunning(false)
+      if (code !== 0 && code !== null) {
+        setErrorMessage(`Python agent process exited unexpectedly with code ${code}.`)
+      }
       setMessages((prev) =>
         prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
       )
+    })
+
+    const unbindPlan = window.api.onAgentPlanUpdate((plan) => {
+      setPlanState(plan)
     })
 
     return () => {
       unbindStdout()
       unbindStderr()
       unbindExit()
+      unbindPlan()
     }
   }, [])
 
@@ -166,7 +202,7 @@ export default function App(): React.JSX.Element {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, planState])
 
   return (
     <div className="flex h-screen w-screen bg-[#18181b] text-zinc-100 overflow-hidden font-sans">
@@ -179,6 +215,7 @@ export default function App(): React.JSX.Element {
         onRefreshDirectory={handleRefreshDirectory}
         onSelectFile={handleSelectFileFromTree}
         recentChats={recentChats}
+        onSelectRecentChat={(title) => handleSendMessage(title)}
       />
 
       {/* Main Content Area */}
@@ -197,40 +234,94 @@ export default function App(): React.JSX.Element {
               </span>
             )}
           </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowTerminal(!showTerminal)}
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors border ${
+                showTerminal
+                  ? 'bg-purple-900/40 text-purple-300 border-purple-500/40'
+                  : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/40 hover:text-zinc-200'
+              }`}
+              title="Toggle Ground-Truth Terminal View (xterm.js)"
+            >
+              <TerminalSquare className="w-3.5 h-3.5" />
+              <span>Terminal</span>
+            </button>
+          </div>
         </div>
 
-        {/* Chat Body */}
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
-            <WelcomeScreen />
-            <ClaudeInput
-              onSendMessage={handleSendMessage}
-              onStopAgent={handleStopAgent}
-              isAgentRunning={isAgentRunning}
-              currentDir={currentDir}
-              centered
-            />
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Scrollable Message List */}
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
-              <div className="max-w-4xl mx-auto space-y-4">
-                {messages.map((msg) => (
-                  <ChatMessageItem key={msg.id} message={msg} />
-                ))}
-              </div>
+        {/* Error Banner */}
+        {errorMessage && (
+          <div className="bg-rose-950/80 border-b border-rose-800/60 px-4 py-2 flex items-center justify-between text-xs text-rose-200">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{errorMessage}</span>
             </div>
-
-            {/* Bottom Floating Input Bar */}
-            <ClaudeInput
-              onSendMessage={handleSendMessage}
-              onStopAgent={handleStopAgent}
-              isAgentRunning={isAgentRunning}
-              currentDir={currentDir}
-            />
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-rose-400 hover:text-rose-100 p-0.5 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
+
+        {/* Main View Area: Chat + Ground-Truth Terminal Viewport */}
+        <div className="flex-1 flex min-h-0 relative">
+          {/* Chat / Agent View */}
+          <div className={`flex-1 flex flex-col min-h-0 ${showTerminal ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
+            {messages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
+                <WelcomeScreen />
+                <ClaudeInput
+                  onSendMessage={handleSendMessage}
+                  onStopAgent={handleStopAgent}
+                  isAgentRunning={isAgentRunning}
+                  currentDir={currentDir}
+                  centered
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0">
+                {/* Scrollable Message List */}
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
+                  <div className="max-w-4xl mx-auto space-y-4 px-2">
+                    {/* Live Agent Planning UI Component */}
+                    {planState && planState.isAgentMode && planState.steps.length > 0 && (
+                      <AgentPlanning title={planState.title} steps={planState.steps} />
+                    )}
+
+                    {messages.map((msg) => (
+                      <ChatMessageItem key={msg.id} message={msg} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom Floating Input Bar */}
+                <ClaudeInput
+                  onSendMessage={handleSendMessage}
+                  onStopAgent={handleStopAgent}
+                  isAgentRunning={isAgentRunning}
+                  currentDir={currentDir}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Ground-Truth Terminal Viewport (xterm.js) */}
+          {showTerminal && (
+            <div className="w-1/2 h-full bg-[#18181b] flex flex-col">
+              <div className="px-3 py-1.5 bg-[#141416] border-b border-zinc-800 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
+                <span>xterm.js — Raw Terminal Stream</span>
+                <span className="text-purple-400">Ground Truth</span>
+              </div>
+              <div className="flex-1 relative">
+                <Terminal />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

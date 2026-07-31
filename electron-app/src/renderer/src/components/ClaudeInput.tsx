@@ -87,8 +87,15 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
 
           {/* Model Pill + Send Button */}
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 rounded-full text-xs cursor-pointer border border-zinc-700/40">
-              <span className="font-medium">Groq Llama 3.3</span>
+            <div
+              onClick={() => {
+                const insertText = '/model'
+                setText((prev) => (prev ? `${prev}\n${insertText}` : insertText))
+              }}
+              title="Current LLM Model (Click to insert /model command)"
+              className="flex items-center space-x-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 rounded-full text-xs cursor-pointer border border-zinc-700/40 transition-colors"
+            >
+              <span className="font-medium">Groq Llama 3.3 70B</span>
               <ChevronDown className="w-3 h-3 text-zinc-400" />
             </div>
 
