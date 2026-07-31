@@ -15,6 +15,7 @@ from typing import Optional, Dict, List
 from core.state import AgentState, StepResult
 from core.observation import Observation
 from core.intent import IntentAnalyzer, AGENT_INTENTS, CHAT_INTENTS
+from core.skills_loader import SkillsLoader
 from agents.planner import PlannerAgent
 from agents.coder import CoderAgent
 from agents.debugger import DebuggerAgent
@@ -73,6 +74,7 @@ class AgentLoop:
         self.short_memory = ShortTermMemory()
         self.long_memory = LongTermMemory()
         self.workspace = WorkspaceContext()
+        self.skills_loader = SkillsLoader(workspace_dir=os.getcwd())
 
         # ── Token Meter ──
         self.token_meter = token_meter or TokenMeter()
@@ -174,6 +176,12 @@ class AgentLoop:
         """
         self.state.set_task(user_input, intent=intent)
         print_themed(Theme.separator("━"))
+
+        # ── Check for Skill Activation ──
+        matched_skill = self.skills_loader.match_skill(user_input)
+        if matched_skill:
+            print(f"[SKILL_ACTIVE: {matched_skill.name}]", flush=True)
+            user_input = f"{user_input}\n\n[ACTIVE SKILL INSTRUCTIONS ({matched_skill.name})]:\n{matched_skill.instructions}"
 
         # ── Phase 1: Initial Plan (with workspace context) ──
         nyx.planning()
