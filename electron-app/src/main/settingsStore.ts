@@ -60,27 +60,37 @@ export class SettingsStore {
     if (!data.groqApiKeyEncrypted) return ''
 
     try {
-      if (safeStorage.isEncryptionAvailable()) {
+      if (safeStorage && safeStorage.isEncryptionAvailable()) {
         const buf = Buffer.from(data.groqApiKeyEncrypted, 'base64')
         return safeStorage.decryptString(buf)
       } else {
         return Buffer.from(data.groqApiKeyEncrypted, 'base64').toString('utf-8')
       }
-    } catch {
-      return ''
+    } catch (err) {
+      console.warn('[SettingsStore] safeStorage decryption fallback:', err)
+      try {
+        return Buffer.from(data.groqApiKeyEncrypted, 'base64').toString('utf-8')
+      } catch {
+        return ''
+      }
     }
   }
 
-  /** Set & encrypt Groq API Key using safeStorage */
+  /** Set & encrypt Groq API Key using safeStorage with fallback */
   public setGroqApiKey(apiKey: string): void {
     const data = this.readRawSettings()
     if (!apiKey.trim()) {
       delete data.groqApiKeyEncrypted
     } else {
-      if (safeStorage.isEncryptionAvailable()) {
-        const encrypted = safeStorage.encryptString(apiKey.trim())
-        data.groqApiKeyEncrypted = encrypted.toString('base64')
-      } else {
+      try {
+        if (safeStorage && safeStorage.isEncryptionAvailable()) {
+          const encrypted = safeStorage.encryptString(apiKey.trim())
+          data.groqApiKeyEncrypted = encrypted.toString('base64')
+        } else {
+          data.groqApiKeyEncrypted = Buffer.from(apiKey.trim()).toString('base64')
+        }
+      } catch (err) {
+        console.warn('[SettingsStore] safeStorage encryption fallback:', err)
         data.groqApiKeyEncrypted = Buffer.from(apiKey.trim()).toString('base64')
       }
     }

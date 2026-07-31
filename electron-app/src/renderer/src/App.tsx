@@ -167,7 +167,13 @@ export default function App(): React.JSX.Element {
 
   // ── Settings Saved Callback ──
   const handleSettingsSaved = async (): Promise<void> => {
-    // If agent is currently running, kill process so updated settings/env apply on next turn
+    // Check if a message is actively streaming
+    const isStreaming = messages.some((m) => m.isStreaming)
+    if (isStreaming) {
+      console.log('[Settings] Agent is actively streaming a response. Deferring process restart until turn completes.')
+      return
+    }
+    // Only kill idle agent processes so updated settings take effect on next turn without cutting off in-flight streams
     const running = await window.api.isAgentRunning()
     if (running) {
       await window.api.killAgent()
