@@ -31,9 +31,14 @@ export default function App(): React.JSX.Element {
   // Debounce saving so we don't write to disk on every stdout chunk
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Load session list from disk on app start ──
+  // ── Load session list & workspace directory on app start ──
   useEffect(() => {
     refreshSessionList()
+    const savedDir = localStorage.getItem('spiral_last_dir')
+    if (savedDir) {
+      setCurrentDir(savedDir)
+      loadDirectoryTree(savedDir)
+    }
   }, [])
 
   const refreshSessionList = async (): Promise<void> => {
@@ -86,6 +91,7 @@ export default function App(): React.JSX.Element {
       const selected = await window.api.selectDirectory()
       if (selected) {
         setCurrentDir(selected)
+        localStorage.setItem('spiral_last_dir', selected)
         await loadDirectoryTree(selected)
         setErrorMessage(null)
         return selected

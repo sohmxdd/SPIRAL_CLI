@@ -37,7 +37,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onLoadSession,
   onDeleteSession
 }) => {
-  const [showFiles, setShowFiles] = useState(false)
+  const [showFiles, setShowFiles] = useState(true)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
 
   // Group sessions: Today, Yesterday, Previous 7 Days, Older

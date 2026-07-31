@@ -24,23 +24,23 @@ export interface ChatSession {
  * Each session is a separate .json file in `<userData>/chat-sessions/`.
  */
 export class ChatSessionStore {
-  private sessionsDir: string
-
-  constructor() {
-    this.sessionsDir = join(app.getPath('userData'), 'chat-sessions')
-    if (!existsSync(this.sessionsDir)) {
-      mkdirSync(this.sessionsDir, { recursive: true })
+  private getSessionsDir(): string {
+    const dir = join(app.getPath('userData'), 'chat-sessions')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
     }
+    return dir
   }
 
   private sessionPath(id: string): string {
-    return join(this.sessionsDir, `${id}.json`)
+    return join(this.getSessionsDir(), `${id}.json`)
   }
 
   /** Save or update a chat session */
   public saveSession(session: ChatSession): void {
     const filePath = this.sessionPath(session.id)
     writeFileSync(filePath, JSON.stringify(session, null, 2), 'utf-8')
+    console.log(`[ChatSessionStore] Session ${session.id} saved to: ${filePath}`)
   }
 
   /** Load a single session by ID */
@@ -50,7 +50,8 @@ export class ChatSessionStore {
     try {
       const raw = readFileSync(filePath, 'utf-8')
       return JSON.parse(raw) as ChatSession
-    } catch {
+    } catch (err) {
+      console.error(`[ChatSessionStore] Failed to load session ${id}:`, err)
       return null
     }
   }
@@ -58,28 +59,31 @@ export class ChatSessionStore {
   /** List all sessions (metadata only — no full message arrays, for sidebar performance) */
   public listSessions(): Array<{ id: string; title: string; createdAt: string; updatedAt: string; messageCount: number }> {
     try {
-      const files = readdirSync(this.sessionsDir).filter((f) => f.endsWith('.json'))
+      const dir = this.getSessionsDir()
+      console.log(`[ChatSessionStore] Reading session files from: ${dir}`)
+      const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
       const sessions: Array<{ id: string; title: string; createdAt: string; updatedAt: string; messageCount: number }> = []
 
       for (const file of files) {
         try {
-          const raw = readFileSync(join(this.sessionsDir, file), 'utf-8')
+          const raw = readFileSync(join(dir, file), 'utf-8')
           const session = JSON.parse(raw) as ChatSession
           sessions.push({
             id: session.id,
             title: session.title,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt,
-            messageCount: session.messages.length
+            messageCount: session.messages ? session.messages.length : 0
           })
-        } catch {
-          // skip corrupted files
+        } catch (err) {
+          console.error(`[ChatSessionStore] Corrupted session file ${file}:`, err)
         }
       }
 
       // Sort by most recently updated first
       return sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    } catch {
+    } catch (err) {
+      console.error('[ChatSessionStore] Failed to list sessions:', err)
       return []
     }
   }
