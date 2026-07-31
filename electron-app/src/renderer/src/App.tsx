@@ -404,7 +404,11 @@ export default function App(): React.JSX.Element {
                           planState.isAgentMode &&
                           planState.steps.length > 0 && (
                             <div className="pl-10 pr-4">
-                              <AgentPlanning title={planState.title} steps={planState.steps} />
+                              <AgentPlanning
+                                title={planState.title}
+                                currentPhase={planState.currentPhase}
+                                steps={planState.steps}
+                              />
                             </div>
                           )}
                       </React.Fragment>

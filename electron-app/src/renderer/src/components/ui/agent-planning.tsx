@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 export type PlanStepStatus = 'pending' | 'active' | 'success' | 'error'
+export type AgentPlanLifecycle = 'idle' | 'active' | 'complete' | 'error'
 
 export interface PlanStep {
   id: string
@@ -27,6 +28,7 @@ export interface PlanStep {
 
 export interface AgentPlanningProps {
   title?: string
+  currentPhase?: AgentPlanLifecycle
   steps?: PlanStep[]
 }
 
@@ -52,11 +54,25 @@ export const getSubagentIcon = (subagent?: string): React.ReactNode => {
 
 export const AgentPlanning: React.FC<AgentPlanningProps> = ({
   title = 'Agent is planning',
+  currentPhase = 'active',
   steps = []
 }) => {
-  const [isMainExpanded, setIsMainExpanded] = useState(true)
-
+  const [isMainExpanded, setIsMainExpanded] = useState(currentPhase === 'active')
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({})
+
+  const prevPhaseRef = useRef<AgentPlanLifecycle>(currentPhase)
+
+  // Auto-collapse when transition to 'complete' occurs (Claude-style)
+  useEffect(() => {
+    if (prevPhaseRef.current !== currentPhase) {
+      if (currentPhase === 'complete') {
+        setIsMainExpanded(false)
+      } else if (currentPhase === 'active') {
+        setIsMainExpanded(true)
+      }
+      prevPhaseRef.current = currentPhase
+    }
+  }, [currentPhase])
 
   const mainContentRef = useRef<HTMLDivElement>(null)
 
@@ -69,8 +85,9 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
     return null
   }
 
-  const hasActive = steps.some((s) => s.status === 'active')
-  const allSuccess = steps.length > 0 && steps.every((s) => s.status === 'success')
+  const hasActive = currentPhase === 'active' || steps.some((s) => s.status === 'active')
+  const isComplete = currentPhase === 'complete' || (steps.length > 0 && steps.every((s) => s.status === 'success'))
+  const hasError = currentPhase === 'error' || steps.some((s) => s.status === 'error')
 
   const getStatusColor = (status: PlanStepStatus): string => {
     switch (status) {
@@ -98,9 +115,11 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
         >
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-5 h-5">
-              {hasActive ? (
+              {hasError ? (
+                <AlertTriangle className="w-4 h-4 text-rose-500" />
+              ) : hasActive ? (
                 <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-              ) : allSuccess ? (
+              ) : isComplete ? (
                 <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               ) : (
                 <BrainCircuit className="w-4 h-4 text-muted-foreground" />

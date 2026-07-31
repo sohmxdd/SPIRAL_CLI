@@ -6,6 +6,7 @@ export interface FileNode {
 }
 
 export type PlanStepStatus = 'pending' | 'active' | 'success' | 'error'
+export type AgentPlanLifecycle = 'idle' | 'active' | 'complete' | 'error'
 
 export interface ParsedStep {
   id: string
@@ -20,7 +21,7 @@ export interface ParsedStep {
 export interface ParsedPlanState {
   title: string
   isAgentMode: boolean
-  currentPhase: string
+  currentPhase: AgentPlanLifecycle
   steps: ParsedStep[]
 }
 
