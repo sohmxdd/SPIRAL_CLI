@@ -25,12 +25,18 @@ export default function App(): React.JSX.Element {
   const [planState, setPlanState] = useState<ParsedPlanState | null>(null)
 
   // ── Session management state ──
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [activeSessionId, setActiveSessionIdState] = useState<string | null>(null)
+  const activeSessionIdRef = useRef<string | null>(null)
+
+  const setActiveSessionId = (id: string | null): void => {
+    activeSessionIdRef.current = id
+    setActiveSessionIdState(id)
+  }
+
   const [sessionList, setSessionList] = useState<ChatSessionMeta[]>([])
 
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const activeMessageIdRef = useRef<string | null>(null)
-  // Debounce saving so we don't write to disk on every stdout chunk
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Load session list & workspace directory on app start ──
@@ -48,33 +54,47 @@ export default function App(): React.JSX.Element {
     setSessionList(list)
   }
 
-  // ── Persist current session to disk (debounced) ──
-  const persistSession = useCallback(
-    (sessionId: string, msgs: Message[], title?: string) => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = setTimeout(async () => {
-        const sessionTitle =
-          title ||
-          (msgs.find((m) => m.sender === 'user')?.content.slice(0, 50) || 'Untitled Chat')
+  // ── Persist session immediately (on message send, stream end, or session switch) ──
+  const persistSessionNow = useCallback(
+    async (sessionId: string, msgs: Message[], title?: string) => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+      if (!sessionId || msgs.length === 0) return
 
-        await window.api.saveSession({
-          id: sessionId,
-          title: sessionTitle,
-          messages: msgs.map((m) => ({
-            id: m.id,
-            sender: m.sender,
-            content: m.content,
-            rawLogs: m.rawLogs,
-            timestamp: m.timestamp.toISOString()
-          })),
-          createdAt: msgs[0]?.timestamp.toISOString() || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          workingDir: currentDir
-        })
-        refreshSessionList()
-      }, 600)
+      const sessionTitle =
+        title ||
+        (msgs.find((m) => m.sender === 'user')?.content.slice(0, 50) || 'Untitled Chat')
+
+      await window.api.saveSession({
+        id: sessionId,
+        title: sessionTitle,
+        messages: msgs.map((m) => ({
+          id: m.id,
+          sender: m.sender,
+          content: m.content,
+          rawLogs: m.rawLogs,
+          timestamp: m.timestamp.toISOString()
+        })),
+        createdAt: msgs[0]?.timestamp.toISOString() || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        workingDir: currentDir
+      })
+      refreshSessionList()
     },
     [currentDir]
+  )
+
+  // ── Persist current session to disk (debounced during streaming) ──
+  const persistSessionDebounced = useCallback(
+    (sessionId: string, msgs: Message[], title?: string) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        persistSessionNow(sessionId, msgs, title)
+      }, 600)
+    },
+    [persistSessionNow]
   )
 
   // Load directory tree
@@ -215,7 +235,7 @@ export default function App(): React.JSX.Element {
     setMessages(nextMessages)
 
     // Persist immediately (creates session file on first message)
-    persistSession(sessionId, nextMessages)
+    persistSessionNow(sessionId, nextMessages)
 
     // Ensure agent process is active
     const running = await window.api.isAgentRunning()
@@ -269,8 +289,9 @@ export default function App(): React.JSX.Element {
           return msg
         })
         // Auto-persist as content streams in (debounced)
-        if (activeSessionId) {
-          persistSession(activeSessionId, updated)
+        const sid = activeSessionIdRef.current
+        if (sid) {
+          persistSessionDebounced(sid, updated)
         }
         return updated
       })
@@ -300,9 +321,10 @@ export default function App(): React.JSX.Element {
       }
       setMessages((prev) => {
         const updated = prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
-        // Final persist when stream ends
-        if (activeSessionId) {
-          persistSession(activeSessionId, updated)
+        // Final immediate persist when stream ends
+        const sid = activeSessionIdRef.current
+        if (sid) {
+          persistSessionNow(sid, updated)
         }
         return updated
       })
