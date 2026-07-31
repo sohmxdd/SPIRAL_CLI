@@ -149,11 +149,11 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
             </div>
           </div>
 
-          {/* Model Pill + MCP Badge + Send Button */}
+          {/* Model Pill + Send Button */}
           <div className="flex items-center space-x-2">
             <div
               onClick={() => insertCommand('/model')}
-              title="Current LLM Model & MCP Tools Enabled (Click to insert /model)"
+              title="Current LLM Model (Click to insert /model)"
               className="flex items-center space-x-1.5 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 rounded-full text-xs cursor-pointer border border-zinc-700/40 transition-colors"
             >
               <Cpu className="w-3.5 h-3.5 text-purple-400" />

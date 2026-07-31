@@ -93,7 +93,7 @@ In addition to the terminal CLI, SPIRAL features a desktop GUI built with **Elec
 - **Structured Subagent Thinking Timeline**: Live step-by-step progress timeline powered by 21st.dev `AgentPlanning`, streaming real-time subagent states (`PlannerAgent`, `CoderAgent`, `TesterAgent`, `VerifierAgent`, `DebuggerAgent`, `ReflectorAgent`).
 - **Ground-Truth Terminal View (xterm.js)**: Toggleable side-by-side xterm.js viewport rendering raw ANSI terminal streams natively alongside the structured chat view.
 - **Interactive Workspace Explorer**: Sidebar directory tree that auto-refreshes in real-time as the agent generates, modifies, or creates files in your selected workspace folder.
-- **Slash Commands & MCP Integration**: Interactive autocomplete menu (`/help`, `/status`, `/reset`, `/files`, `/model`, `/clear`) with quick command chips and Model Context Protocol (MCP) server support.
+- **Slash Commands & Tooling**: Interactive autocomplete menu (`/help`, `/status`, `/reset`, `/files`, `/model`, `/clear`) with quick command chips and Model Context Protocol (MCP) server support (coming soon).
 
 ### ⚡ Running the Desktop App
 
