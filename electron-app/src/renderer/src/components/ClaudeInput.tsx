@@ -1,5 +1,6 @@
-import React, { useState, useRef, KeyboardEvent } from 'react'
-import { Plus, ArrowUp, Square, ChevronDown, Terminal, Cpu } from 'lucide-react'
+import React, { useState, useEffect, useRef, KeyboardEvent } from 'react'
+import { Plus, ArrowUp, Square, ChevronDown, Terminal, Cpu, Wrench, Bot } from 'lucide-react'
+import { SkillItem } from '../types'
 
 interface ClaudeInputProps {
   onSendMessage: (message: string) => void
@@ -9,13 +10,28 @@ interface ClaudeInputProps {
   centered?: boolean
 }
 
-const SLASH_COMMANDS = [
-  { cmd: '/help', desc: 'Show all SPIRAL agent commands' },
-  { cmd: '/status', desc: 'Display session status & token usage' },
-  { cmd: '/reset', desc: 'Reset memory & agent loop state' },
-  { cmd: '/files', desc: 'List files in workspace' },
-  { cmd: '/model', desc: 'Display current Groq LLM model' },
-  { cmd: '/clear', desc: 'Clear terminal viewport' }
+interface SlashCommandItem {
+  cmd: string
+  desc: string
+  category: 'Commands' | 'Loaded Skills' | 'Subagents'
+}
+
+const BUILTIN_COMMANDS: SlashCommandItem[] = [
+  { cmd: '/help', desc: 'Show all SPIRAL agent commands', category: 'Commands' },
+  { cmd: '/status', desc: 'Display session status & token usage', category: 'Commands' },
+  { cmd: '/reset', desc: 'Reset memory & agent loop state', category: 'Commands' },
+  { cmd: '/files', desc: 'List files in workspace', category: 'Commands' },
+  { cmd: '/model', desc: 'Display current Groq LLM model', category: 'Commands' },
+  { cmd: '/clear', desc: 'Clear terminal viewport', category: 'Commands' }
+]
+
+const SUBAGENTS: SlashCommandItem[] = [
+  { cmd: '/agent:planner', desc: 'PlannerAgent: Task decomposition & plan', category: 'Subagents' },
+  { cmd: '/agent:coder', desc: 'CoderAgent: Autonomous code implementation', category: 'Subagents' },
+  { cmd: '/agent:tester', desc: 'TesterAgent: Automated test execution & verification', category: 'Subagents' },
+  { cmd: '/agent:verifier', desc: 'VerifierAgent: Deep quality verification', category: 'Subagents' },
+  { cmd: '/agent:debugger', desc: 'DebuggerAgent: Root cause debugging & fix', category: 'Subagents' },
+  { cmd: '/agent:reflector', desc: 'ReflectorAgent: Post-execution reflection', category: 'Subagents' }
 ]
 
 export const ClaudeInput: React.FC<ClaudeInputProps> = ({
@@ -27,7 +43,36 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
 }) => {
   const [text, setText] = useState('')
   const [showSlashMenu, setShowSlashMenu] = useState(false)
+  const [skillCmds, setSkillCmds] = useState<SlashCommandItem[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    loadSkills()
+  }, [currentDir])
+
+  const loadSkills = async (): Promise<void> => {
+    try {
+      const skills: SkillItem[] = await window.api.listSkills(currentDir || undefined)
+      const list: SlashCommandItem[] = skills.map((s) => ({
+        cmd: `/skill:${s.name}`,
+        desc: s.description,
+        category: 'Loaded Skills'
+      }))
+      setSkillCmds(list)
+    } catch {
+      setSkillCmds([])
+    }
+  }
+
+  const allCommands = [...BUILTIN_COMMANDS, ...skillCmds, ...SUBAGENTS]
+
+  const search = text.startsWith('/') ? text.slice(1).toLowerCase().trim() : ''
+  const filtered = allCommands.filter(
+    (c) =>
+      c.cmd.toLowerCase().includes(search) ||
+      c.desc.toLowerCase().includes(search) ||
+      c.category.toLowerCase().includes(search)
+  )
 
   const handleSend = (): void => {
     const trimmed = text.trim()
@@ -81,7 +126,7 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
   }
 
   const insertCommand = (cmd: string): void => {
-    setText(cmd)
+    setText(`${cmd} `)
     setShowSlashMenu(false)
     textareaRef.current?.focus()
   }
@@ -91,23 +136,44 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
       <div className="relative bg-[#242427] border border-zinc-700/60 rounded-3xl p-3.5 shadow-2xl focus-within:border-purple-500/60 transition-all">
         {/* Slash Command Suggestions Menu */}
         {showSlashMenu && (
-          <div className="absolute bottom-full left-0 mb-2 w-72 bg-[#1b1b1e] border border-zinc-700/80 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2">
-            <div className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider px-2 py-1 flex items-center space-x-1">
-              <Terminal className="w-3 h-3" />
-              <span>SPIRAL Commands & Tools</span>
+          <div className="absolute bottom-full left-0 mb-2 w-80 bg-[#1b1b1e] border border-zinc-700/80 rounded-2xl p-2.5 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 max-h-72 overflow-y-auto">
+            <div className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider px-2 py-1 flex items-center justify-between border-b border-zinc-800/80 pb-1 mb-1">
+              <div className="flex items-center space-x-1">
+                <Terminal className="w-3 h-3" />
+                <span>SPIRAL Commands & Tools</span>
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">{filtered.length} matches</span>
             </div>
-            <div className="space-y-0.5 mt-1">
-              {SLASH_COMMANDS.map((item) => (
-                <div
-                  key={item.cmd}
-                  onClick={() => insertCommand(item.cmd)}
-                  className="flex items-center justify-between px-2.5 py-1.5 hover:bg-purple-950/40 hover:text-purple-300 rounded-xl cursor-pointer transition-colors text-xs"
-                >
-                  <span className="font-mono font-semibold text-purple-300">{item.cmd}</span>
-                  <span className="text-[10px] text-zinc-400 truncate max-w-[140px]">{item.desc}</span>
-                </div>
-              ))}
-            </div>
+
+            {filtered.length === 0 ? (
+              <div className="text-xs text-zinc-500 italic p-2 text-center">No matching commands</div>
+            ) : (
+              <div className="space-y-1">
+                {filtered.map((item) => (
+                  <div
+                    key={item.cmd}
+                    onClick={() => insertCommand(item.cmd)}
+                    className="flex items-center justify-between p-2 hover:bg-purple-950/40 border border-transparent hover:border-purple-800/40 rounded-xl cursor-pointer transition-colors text-xs group"
+                  >
+                    <div className="flex items-center space-x-2 truncate">
+                      {item.category === 'Loaded Skills' ? (
+                        <Wrench className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      ) : item.category === 'Subagents' ? (
+                        <Bot className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      ) : (
+                        <Terminal className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                      )}
+                      <span className="font-mono font-semibold text-purple-300 group-hover:text-purple-200">
+                        {item.cmd}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-zinc-400 truncate max-w-[130px] ml-2">
+                      {item.desc}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
