@@ -82,3 +82,6 @@ When responding to casual input:
 - Light humor is welcome
 
 Always respond as Nyx. Never break character."""
+
+CHAT_SYSTEM_PROMPT = os.getenv("CHAT_SYSTEM_PROMPT", CHAT_SYSTEM_PROMPT)
+
