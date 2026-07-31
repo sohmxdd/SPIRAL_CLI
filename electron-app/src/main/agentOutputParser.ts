@@ -15,6 +15,7 @@ export interface ParsedPlanState {
   title: string
   isAgentMode: boolean
   currentPhase: AgentPlanLifecycle
+  activeSkill?: string
   steps: ParsedStep[]
 }
 
@@ -45,6 +46,20 @@ export class AgentOutputParser {
     for (const line of lines) {
       const trimmed = line.trim()
       if (!trimmed) continue
+
+      // Detect Skill Activation Marker: [SKILL_ACTIVE: name]
+      const skillMatch = trimmed.match(/\[SKILL_ACTIVE:\s*(.+)\]/i)
+      if (skillMatch) {
+        const skillName = skillMatch[1].trim()
+        this.currentPlan.activeSkill = skillName
+        this.addOrUpdateStep(
+          `skill-${skillName}`,
+          `Activated Skill: ${skillName}`,
+          'success',
+          'General'
+        )
+        continue
+      }
 
       // Detect Intent / Mode
       if (trimmed.includes('Analyzing intent') || trimmed.includes('[INTENT]')) {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { FileNode, ChatSessionMeta } from '../types'
+import React, { useState, useEffect } from 'react'
+import { FileNode, ChatSessionMeta, SkillItem } from '../types'
 import { FileTree } from './FileTree'
 import {
   Plus,
@@ -10,7 +10,8 @@ import {
   ChevronRight,
   ChevronDown,
   Trash2,
-  Settings
+  Settings,
+  Sparkles
 } from 'lucide-react'
 
 interface ClaudeSidebarProps {
@@ -41,7 +42,22 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onOpenSettings
 }) => {
   const [showFiles, setShowFiles] = useState(true)
+  const [showSkills, setShowSkills] = useState(false)
+  const [skillsList, setSkillsList] = useState<SkillItem[]>([])
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
+
+  useEffect(() => {
+    loadSkills()
+  }, [currentDir])
+
+  const loadSkills = async (): Promise<void> => {
+    try {
+      const skills = await window.api.listSkills(currentDir || undefined)
+      setSkillsList(skills)
+    } catch {
+      setSkillsList([])
+    }
+  }
 
   // Group sessions: Today, Yesterday, Previous 7 Days, Older
   const groupSessions = (): Record<string, ChatSessionMeta[]> => {
@@ -143,6 +159,45 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
           {showFiles && currentDir && (
             <div className="mt-2 max-h-40 overflow-y-auto border-t border-zinc-800/60 pt-1">
               <FileTree nodes={fileTree} onSelectFile={onSelectFile} />
+            </div>
+          )}
+        </div>
+
+        {/* Active Skills Explorer */}
+        <div className="px-3 py-2 border-b border-zinc-800/60 bg-zinc-900/20">
+          <div
+            onClick={() => setShowSkills(!showSkills)}
+            className="flex items-center justify-between text-xs font-medium text-zinc-400 hover:text-zinc-200 cursor-pointer"
+          >
+            <div className="flex items-center space-x-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              <span className="uppercase tracking-wider text-[10px]">Loaded Skills</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-[10px] bg-purple-950/60 text-purple-300 px-1.5 py-0.2 rounded border border-purple-800/40 font-mono">
+                {skillsList.length}
+              </span>
+              {showSkills ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </div>
+          </div>
+
+          {showSkills && (
+            <div className="mt-2 space-y-1.5 max-h-36 overflow-y-auto pt-1">
+              {skillsList.length === 0 ? (
+                <div className="text-[11px] text-zinc-500 italic px-1 py-1">No skills found in .spiral/skills/</div>
+              ) : (
+                skillsList.map((skill) => (
+                  <div
+                    key={skill.name}
+                    className="p-2 bg-zinc-800/40 hover:bg-zinc-800/70 border border-zinc-700/40 rounded-lg text-xs transition-colors"
+                  >
+                    <div className="font-semibold text-purple-300 text-[11px]">
+                      {skill.name}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-2">{skill.description}</p>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

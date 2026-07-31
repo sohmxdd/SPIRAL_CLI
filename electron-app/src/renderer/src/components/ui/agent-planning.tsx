@@ -9,7 +9,8 @@ import {
   BrainCircuit,
   AlertTriangle,
   Code,
-  TerminalSquare
+  TerminalSquare,
+  Sparkles
 } from 'lucide-react'
 
 export type PlanStepStatus = 'pending' | 'active' | 'success' | 'error'
@@ -29,6 +30,7 @@ export interface PlanStep {
 export interface AgentPlanningProps {
   title?: string
   currentPhase?: AgentPlanLifecycle
+  activeSkill?: string
   steps?: PlanStep[]
 }
 
@@ -55,6 +57,7 @@ export const getSubagentIcon = (subagent?: string): React.ReactNode => {
 export const AgentPlanning: React.FC<AgentPlanningProps> = ({
   title = 'Agent is planning',
   currentPhase = 'active',
+  activeSkill,
   steps = []
 }) => {
   const [isMainExpanded, setIsMainExpanded] = useState(currentPhase === 'active')
@@ -129,6 +132,13 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
             <span className="text-[14px] font-semibold text-foreground/90 tracking-tight">
               {title}
             </span>
+
+            {activeSkill && (
+              <span className="text-[11px] font-mono bg-purple-950/60 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                <span>Skill: {activeSkill}</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-secondary text-muted-foreground transition-colors">

@@ -434,6 +434,7 @@ export default function App(): React.JSX.Element {
                                 <AgentPlanning
                                   title={planState.title}
                                   currentPhase={planState.currentPhase}
+                                  activeSkill={planState.activeSkill}
                                   steps={planState.steps}
                                 />
                               </div>
