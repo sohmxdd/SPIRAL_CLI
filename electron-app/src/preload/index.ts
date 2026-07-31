@@ -18,6 +18,7 @@ export interface SpiralAPI {
   onAgentStdout: (callback: (data: string) => void) => () => void
   onAgentStderr: (callback: (data: string) => void) => () => void
   onAgentExit: (callback: (code: number | null) => void) => () => void
+  onAgentPlanUpdate: (callback: (plan: any) => void) => () => void
 }
 
 const api: SpiralAPI = {
@@ -42,6 +43,11 @@ const api: SpiralAPI = {
     const handler = (_: any, code: number | null): void => callback(code)
     ipcRenderer.on('agent:exit', handler)
     return () => ipcRenderer.removeListener('agent:exit', handler)
+  },
+  onAgentPlanUpdate: (callback: (plan: any) => void) => {
+    const handler = (_: any, plan: any): void => callback(plan)
+    ipcRenderer.on('agent:planUpdate', handler)
+    return () => ipcRenderer.removeListener('agent:planUpdate', handler)
   }
 }
 

@@ -2,6 +2,7 @@ import { dialog, ipcMain, BrowserWindow } from 'electron'
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import { existsSync, readdirSync, statSync } from 'fs'
 import { join, resolve } from 'path'
+import { AgentOutputParser } from './agentOutputParser'
 
 export interface FileNode {
   name: string
@@ -13,6 +14,7 @@ export interface FileNode {
 export class AgentManager {
   private currentChild: ChildProcessWithoutNullStreams | null = null
   private mainWindow: BrowserWindow | null = null
+  private parser: AgentOutputParser = new AgentOutputParser()
 
   constructor() {}
 
@@ -39,6 +41,7 @@ export class AgentManager {
 
   public spawnAgent(cwd?: string): { success: boolean; error?: string } {
     this.killAgent()
+    this.parser.reset()
 
     const mainPyPath = this.findMainPy()
     if (!mainPyPath) {
@@ -63,8 +66,11 @@ export class AgentManager {
       })
 
       this.currentChild.stdout.on('data', (chunk: Buffer) => {
+        const text = chunk.toString('utf-8')
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          this.mainWindow.webContents.send('agent:stdout', chunk.toString('utf-8'))
+          this.mainWindow.webContents.send('agent:stdout', text)
+          const planState = this.parser.parseChunk(text)
+          this.mainWindow.webContents.send('agent:planUpdate', planState)
         }
       })
 
