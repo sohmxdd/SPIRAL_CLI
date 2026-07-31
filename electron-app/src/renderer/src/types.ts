@@ -5,6 +5,13 @@ export interface FileNode {
   children?: FileNode[]
 }
 
+export interface SkillItem {
+  name: string
+  description: string
+  triggers: string[]
+  file_path: string
+}
+
 export type PlanStepStatus = 'pending' | 'active' | 'success' | 'error'
 export type AgentPlanLifecycle = 'idle' | 'active' | 'complete' | 'error'
 
@@ -22,6 +29,7 @@ export interface ParsedPlanState {
   title: string
   isAgentMode: boolean
   currentPhase: AgentPlanLifecycle
+  activeSkill?: string
   steps: ParsedStep[]
 }
 
@@ -73,4 +81,7 @@ export interface SpiralAPI {
   setGroqKey: (key: string) => Promise<boolean>
   getSystemPrompt: () => Promise<string>
   setSystemPrompt: (prompt: string) => Promise<boolean>
+
+  // Skills
+  listSkills: (cwd?: string) => Promise<SkillItem[]>
 }

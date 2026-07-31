@@ -214,6 +214,51 @@ export class AgentManager {
       settingsStore.setSystemPrompt(prompt)
       return true
     })
+
+    // ── Skills IPC Handler ──
+    ipcMain.handle('skills:list', async (_, cwd?: string) => {
+      return this.listSkills(cwd)
+    })
+  }
+
+  public async listSkills(cwd?: string): Promise<any[]> {
+    const mainPyPath = this.findMainPy()
+    if (!mainPyPath) return []
+
+    const pythonExe = process.platform === 'win32' ? 'python' : 'python3'
+    const workingDir = cwd || resolve(mainPyPath, '..')
+
+    return new Promise((res) => {
+      try {
+        const proc = spawn(pythonExe, ['-u', mainPyPath, '--list-skills', workingDir], {
+          cwd: workingDir,
+          env: {
+            ...process.env,
+            PYTHONUNBUFFERED: '1',
+            PYTHONIOENCODING: 'utf-8',
+            PYTHONUTF8: '1'
+          }
+        })
+
+        let stdout = ''
+        proc.stdout.on('data', (chunk: Buffer) => {
+          stdout += chunk.toString('utf-8')
+        })
+
+        proc.on('close', () => {
+          try {
+            const data = JSON.parse(stdout.trim())
+            res(Array.isArray(data) ? data : [])
+          } catch {
+            res([])
+          }
+        })
+
+        proc.on('error', () => res([]))
+      } catch {
+        res([])
+      }
+    })
   }
 
   private readDirectoryTree(dirPath: string, depth = 0): FileNode[] {

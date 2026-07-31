@@ -31,6 +31,9 @@ export interface SpiralAPI {
   setGroqKey: (key: string) => Promise<boolean>
   getSystemPrompt: () => Promise<string>
   setSystemPrompt: (prompt: string) => Promise<boolean>
+
+  // Skills
+  listSkills: (cwd?: string) => Promise<any[]>
 }
 
 const api: SpiralAPI = {
@@ -72,7 +75,10 @@ const api: SpiralAPI = {
   getGroqKey: () => ipcRenderer.invoke('settings:getGroqKey'),
   setGroqKey: (key: string) => ipcRenderer.invoke('settings:setGroqKey', key),
   getSystemPrompt: () => ipcRenderer.invoke('settings:getSystemPrompt'),
-  setSystemPrompt: (prompt: string) => ipcRenderer.invoke('settings:setSystemPrompt', prompt)
+  setSystemPrompt: (prompt: string) => ipcRenderer.invoke('settings:setSystemPrompt', prompt),
+
+  // Skills
+  listSkills: (cwd?: string) => ipcRenderer.invoke('skills:list', cwd)
 }
 
 if (process.contextIsolated) {
