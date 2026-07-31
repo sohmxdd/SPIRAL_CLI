@@ -67,4 +67,10 @@ export interface SpiralAPI {
   loadSession: (id: string) => Promise<ChatSession | null>
   listSessions: () => Promise<ChatSessionMeta[]>
   deleteSession: (id: string) => Promise<boolean>
+
+  // Settings
+  getGroqKey: () => Promise<string>
+  setGroqKey: (key: string) => Promise<boolean>
+  getSystemPrompt: () => Promise<string>
+  setSystemPrompt: (prompt: string) => Promise<boolean>
 }

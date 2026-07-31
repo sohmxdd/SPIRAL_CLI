@@ -5,6 +5,7 @@ import { ChatMessageItem, Message } from './components/ChatMessage'
 import { ClaudeInput } from './components/ClaudeInput'
 import { Terminal } from './components/Terminal'
 import { AgentPlanning } from './components/ui/agent-planning'
+import { SettingsView } from './components/SettingsView'
 import { FileNode, ParsedPlanState, ChatSessionMeta } from './types'
 import { FolderOpen, Bot, TerminalSquare, AlertTriangle, X } from 'lucide-react'
 
@@ -14,6 +15,7 @@ function uid(): string {
 }
 
 export default function App(): React.JSX.Element {
+  const [currentView, setCurrentView] = useState<'chat' | 'settings'>('chat')
   const [currentDir, setCurrentDir] = useState<string | null>(null)
   const [fileTree, setFileTree] = useState<FileNode[]>([])
   const [isAgentRunning, setIsAgentRunning] = useState<boolean>(false)
@@ -122,6 +124,7 @@ export default function App(): React.JSX.Element {
     setPlanState(null)
     activeMessageIdRef.current = null
     setActiveSessionId(null)
+    setCurrentView('chat')
   }
 
   // ── Load an existing session from sidebar ──
@@ -132,6 +135,7 @@ export default function App(): React.JSX.Element {
     setActiveSessionId(session.id)
     setPlanState(null)
     activeMessageIdRef.current = null
+    setCurrentView('chat')
 
     // Restore messages from serialized format
     setMessages(
@@ -159,6 +163,16 @@ export default function App(): React.JSX.Element {
       handleNewChat()
     }
     refreshSessionList()
+  }
+
+  // ── Settings Saved Callback ──
+  const handleSettingsSaved = async (): Promise<void> => {
+    // If agent is currently running, kill process so updated settings/env apply on next turn
+    const running = await window.api.isAgentRunning()
+    if (running) {
+      await window.api.killAgent()
+      setIsAgentRunning(false)
+    }
   }
 
   // ── Send a message ──
@@ -324,6 +338,7 @@ export default function App(): React.JSX.Element {
         activeSessionId={activeSessionId}
         onLoadSession={handleLoadSession}
         onDeleteSession={handleDeleteSession}
+        onOpenSettings={() => setCurrentView('settings')}
       />
 
       {/* Main Content Area */}
@@ -375,71 +390,78 @@ export default function App(): React.JSX.Element {
           </div>
         )}
 
-        {/* Main View Area: Chat + Ground-Truth Terminal Viewport */}
-        <div className="flex-1 flex min-h-0 relative">
-          {/* Chat / Agent View */}
-          <div className={`flex-1 flex flex-col min-h-0 ${showTerminal ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
-            {messages.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
-                <WelcomeScreen currentDir={currentDir} onSelectDirectory={handleSelectDirectory} />
-                <ClaudeInput
-                  onSendMessage={handleSendMessage}
-                  onStopAgent={handleStopAgent}
-                  isAgentRunning={isAgentRunning}
-                  currentDir={currentDir}
-                  centered
-                />
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col min-h-0">
-                {/* Scrollable Message List */}
-                <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
-                  <div className="max-w-4xl mx-auto space-y-4 px-2">
-                    {messages.map((msg) => (
-                      <React.Fragment key={msg.id}>
-                        <ChatMessageItem message={msg} />
-                        {/* Show AgentPlanning inline under the currently-streaming assistant message */}
-                        {msg.id === streamingAssistantId &&
-                          planState &&
-                          planState.isAgentMode &&
-                          planState.steps.length > 0 && (
-                            <div className="pl-10 pr-4">
-                              <AgentPlanning
-                                title={planState.title}
-                                currentPhase={planState.currentPhase}
-                                steps={planState.steps}
-                              />
-                            </div>
-                          )}
-                      </React.Fragment>
-                    ))}
-                  </div>
+        {/* Main View Area: Chat vs Settings View */}
+        {currentView === 'settings' ? (
+          <SettingsView
+            onClose={() => setCurrentView('chat')}
+            onSettingsSaved={handleSettingsSaved}
+          />
+        ) : (
+          <div className="flex-1 flex min-h-0 relative">
+            {/* Chat / Agent View */}
+            <div className={`flex-1 flex flex-col min-h-0 ${showTerminal ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
+              {messages.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
+                  <WelcomeScreen currentDir={currentDir} onSelectDirectory={handleSelectDirectory} />
+                  <ClaudeInput
+                    onSendMessage={handleSendMessage}
+                    onStopAgent={handleStopAgent}
+                    isAgentRunning={isAgentRunning}
+                    currentDir={currentDir}
+                    centered
+                  />
                 </div>
+              ) : (
+                <div className="flex-1 flex flex-col min-h-0">
+                  {/* Scrollable Message List */}
+                  <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
+                    <div className="max-w-4xl mx-auto space-y-4 px-2">
+                      {messages.map((msg) => (
+                        <React.Fragment key={msg.id}>
+                          <ChatMessageItem message={msg} />
+                          {/* Show AgentPlanning inline under the currently-streaming assistant message */}
+                          {msg.id === streamingAssistantId &&
+                            planState &&
+                            planState.isAgentMode &&
+                            planState.steps.length > 0 && (
+                              <div className="pl-10 pr-4">
+                                <AgentPlanning
+                                  title={planState.title}
+                                  currentPhase={planState.currentPhase}
+                                  steps={planState.steps}
+                                />
+                              </div>
+                            )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* Bottom Floating Input Bar */}
-                <ClaudeInput
-                  onSendMessage={handleSendMessage}
-                  onStopAgent={handleStopAgent}
-                  isAgentRunning={isAgentRunning}
-                  currentDir={currentDir}
-                />
+                  {/* Bottom Floating Input Bar */}
+                  <ClaudeInput
+                    onSendMessage={handleSendMessage}
+                    onStopAgent={handleStopAgent}
+                    isAgentRunning={isAgentRunning}
+                    currentDir={currentDir}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Ground-Truth Terminal Viewport (xterm.js) */}
+            {showTerminal && (
+              <div className="w-1/2 h-full bg-[#18181b] flex flex-col">
+                <div className="px-3 py-1.5 bg-[#141416] border-b border-zinc-800 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
+                  <span>xterm.js — Raw Terminal Stream</span>
+                  <span className="text-purple-400">Ground Truth</span>
+                </div>
+                <div className="flex-1 relative">
+                  <Terminal />
+                </div>
               </div>
             )}
           </div>
-
-          {/* Ground-Truth Terminal Viewport (xterm.js) */}
-          {showTerminal && (
-            <div className="w-1/2 h-full bg-[#18181b] flex flex-col">
-              <div className="px-3 py-1.5 bg-[#141416] border-b border-zinc-800 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
-                <span>xterm.js — Raw Terminal Stream</span>
-                <span className="text-purple-400">Ground Truth</span>
-              </div>
-              <div className="flex-1 relative">
-                <Terminal />
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

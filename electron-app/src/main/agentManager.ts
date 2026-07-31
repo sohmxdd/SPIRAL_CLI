@@ -4,6 +4,7 @@ import { existsSync, readdirSync, statSync } from 'fs'
 import { join, resolve } from 'path'
 import { AgentOutputParser } from './agentOutputParser'
 import { chatSessionStore } from './chatSessionStore'
+import { settingsStore } from './settingsStore'
 
 export interface FileNode {
   name: string
@@ -55,15 +56,28 @@ export class AgentManager {
     const workingDir = cwd || resolve(mainPyPath, '..')
     const pythonExe = process.platform === 'win32' ? 'python' : 'python3'
 
+    const userApiKey = settingsStore.getGroqApiKey()
+    const userSystemPrompt = settingsStore.getSystemPrompt()
+
+    const spawnEnv: Record<string, string> = {
+      ...process.env,
+      PYTHONUNBUFFERED: '1',
+      PYTHONIOENCODING: 'utf-8',
+      PYTHONUTF8: '1'
+    }
+
+    if (userApiKey) {
+      spawnEnv.GROQ_API_KEY = userApiKey
+    }
+
+    if (userSystemPrompt) {
+      spawnEnv.CHAT_SYSTEM_PROMPT = userSystemPrompt
+    }
+
     try {
       this.currentChild = spawn(pythonExe, ['-u', mainPyPath], {
         cwd: workingDir,
-        env: {
-          ...process.env,
-          PYTHONUNBUFFERED: '1',
-          PYTHONIOENCODING: 'utf-8',
-          PYTHONUTF8: '1'
-        }
+        env: spawnEnv
       })
 
       this.currentChild.stdout.on('data', (chunk: Buffer) => {
@@ -180,6 +194,25 @@ export class AgentManager {
 
     ipcMain.handle('chat:delete', async (_, id: string) => {
       return chatSessionStore.deleteSession(id)
+    })
+
+    // ── Settings IPC Handlers ──
+    ipcMain.handle('settings:getGroqKey', async () => {
+      return settingsStore.getGroqApiKey()
+    })
+
+    ipcMain.handle('settings:setGroqKey', async (_, key: string) => {
+      settingsStore.setGroqApiKey(key)
+      return true
+    })
+
+    ipcMain.handle('settings:getSystemPrompt', async () => {
+      return settingsStore.getSystemPrompt()
+    })
+
+    ipcMain.handle('settings:setSystemPrompt', async (_, prompt: string) => {
+      settingsStore.setSystemPrompt(prompt)
+      return true
     })
   }
 

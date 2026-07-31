@@ -9,7 +9,8 @@ import {
   MessageSquare,
   ChevronRight,
   ChevronDown,
-  Trash2
+  Trash2,
+  Settings
 } from 'lucide-react'
 
 interface ClaudeSidebarProps {
@@ -23,6 +24,7 @@ interface ClaudeSidebarProps {
   activeSessionId: string | null
   onLoadSession: (id: string) => void
   onDeleteSession: (id: string) => void
+  onOpenSettings?: () => void
 }
 
 export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
@@ -35,7 +37,8 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   sessionList,
   activeSessionId,
   onLoadSession,
-  onDeleteSession
+  onDeleteSession,
+  onOpenSettings
 }) => {
   const [showFiles, setShowFiles] = useState(true)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
@@ -88,10 +91,18 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
 
           <div
             onClick={onNewChat}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium cursor-pointer"
+            className="flex items-center space-x-2 px-3 py-1.5 hover:bg-[#27272a]/60 text-zinc-100 rounded-lg text-xs font-medium cursor-pointer transition-colors"
           >
             <Home className="w-4 h-4 text-zinc-300" />
             <span>Home</span>
+          </div>
+
+          <div
+            onClick={onOpenSettings}
+            className="flex items-center space-x-2 px-3 py-1.5 hover:bg-[#27272a]/60 text-zinc-300 hover:text-zinc-100 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+          >
+            <Settings className="w-4 h-4 text-purple-400" />
+            <span>Settings</span>
           </div>
         </div>
 

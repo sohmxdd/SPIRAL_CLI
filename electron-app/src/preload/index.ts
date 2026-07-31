@@ -25,6 +25,12 @@ export interface SpiralAPI {
   loadSession: (id: string) => Promise<any | null>
   listSessions: () => Promise<any[]>
   deleteSession: (id: string) => Promise<boolean>
+
+  // Settings
+  getGroqKey: () => Promise<string>
+  setGroqKey: (key: string) => Promise<boolean>
+  getSystemPrompt: () => Promise<string>
+  setSystemPrompt: (prompt: string) => Promise<boolean>
 }
 
 const api: SpiralAPI = {
@@ -60,7 +66,13 @@ const api: SpiralAPI = {
   saveSession: (session: any) => ipcRenderer.invoke('chat:save', session),
   loadSession: (id: string) => ipcRenderer.invoke('chat:load', id),
   listSessions: () => ipcRenderer.invoke('chat:list'),
-  deleteSession: (id: string) => ipcRenderer.invoke('chat:delete', id)
+  deleteSession: (id: string) => ipcRenderer.invoke('chat:delete', id),
+
+  // Settings
+  getGroqKey: () => ipcRenderer.invoke('settings:getGroqKey'),
+  setGroqKey: (key: string) => ipcRenderer.invoke('settings:setGroqKey', key),
+  getSystemPrompt: () => ipcRenderer.invoke('settings:getSystemPrompt'),
+  setSystemPrompt: (prompt: string) => ipcRenderer.invoke('settings:setSystemPrompt', prompt)
 }
 
 if (process.contextIsolated) {
