@@ -446,7 +446,7 @@ export default function App(): React.JSX.Element {
                     <div className="max-w-4xl mx-auto space-y-4 px-2">
                       {messages.map((msg) => (
                         <React.Fragment key={msg.id}>
-                          <ChatMessageItem message={msg} />
+                          <ChatMessageItem message={msg} planPhase={planState?.currentPhase} />
                           {/* Show AgentPlanning inline under the currently-streaming assistant message */}
                           {msg.id === streamingAssistantId &&
                             planState &&
