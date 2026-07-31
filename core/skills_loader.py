@@ -117,9 +117,18 @@ class SkillsLoader:
         ]
 
     def match_skill(self, prompt: str) -> Optional[Skill]:
-        """Find the best matching skill for a user prompt based on triggers and name."""
+        """Find the best matching skill for a user prompt based on triggers, name, or slash command."""
         prompt_lower = prompt.lower()
 
+        # 1. Explicit slash command syntax: /skill:name or /skill name or /skill-name
+        slash_match = re.search(r"/skill[:\s]+([a-zA-Z0-9_-]+)", prompt_lower)
+        if slash_match:
+            skill_target = slash_match.group(1).strip()
+            for sname, skill in self.skills.items():
+                if sname.lower() == skill_target:
+                    return skill
+
+        # 2. Direct name or trigger match
         for skill in self.skills.values():
             if skill.name.lower() in prompt_lower:
                 return skill

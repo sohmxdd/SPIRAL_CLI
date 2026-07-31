@@ -185,6 +185,13 @@ class AgentLoop:
             print(f"[SKILL_ACTIVE: {matched_skill.name}]", flush=True)
             user_input = f"{user_input}\n\n[ACTIVE SKILL INSTRUCTIONS ({matched_skill.name})]:\n{matched_skill.instructions}"
 
+        # ── Check for Subagent Target Directive ──
+        subagent_match = re.search(r"/agent[:\s]+([a-zA-Z0-9_-]+)", user_input, re.IGNORECASE)
+        if subagent_match:
+            sub_target = subagent_match.group(1).strip()
+            print(f"[SUBAGENT_ACTIVE: {sub_target}]", flush=True)
+            user_input = f"{user_input}\n\n[DIRECTIVE: Target subagent specialized execution: {sub_target}]"
+
         # ── Phase 1: Initial Plan (with workspace context) ──
         nyx.planning()
         plan = self._generate_plan(user_input)
