@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import 'highlight.js/styles/atom-one-dark.css'
 import { Copy, Check, Bot, User, Terminal, ChevronDown, ChevronRight } from 'lucide-react'
+import { AgentPlanning } from './ui/agent-planning'
+import { ParsedPlanState } from '../types'
 
 export interface Message {
   id: string
@@ -39,9 +41,11 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
     // Skip empty lines at the start
     if (!trimmed && textLines.length === 0) continue
 
-    // ── Banner / Startup Info ──
+    // ── Banner / Startup Info / Status Lines ──
     if (
       trimmed.includes('████') ||
+      trimmed.includes('___') ||
+      trimmed.includes('___|') ||
       trimmed.includes('Autonomous Coding Agent') ||
       trimmed.includes('Powered by Groq') ||
       trimmed.includes('Guided by Nyx') ||
@@ -53,6 +57,7 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.includes('SPIRAL Commands') ||
       trimmed.includes('Recent activity') ||
       trimmed.includes('Groq connected') ||
+      trimmed.includes('Testing Groq connection') ||
       (trimmed.includes('Model') && trimmed.includes('llama')) ||
       trimmed.includes('Working Dir') ||
       trimmed.includes('Token Budget') ||
@@ -63,10 +68,11 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.includes('Session started') ||
       trimmed.includes('session_id')
     ) {
+      logLines.push(trimmed)
       continue
     }
 
-    // ── Prompt box borders & input prompts ──
+    // ── Prompt box borders & ASCII box drawing characters ──
     if (
       trimmed.startsWith('╭') ||
       trimmed.startsWith('╰') ||
@@ -76,20 +82,49 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.startsWith('│ (spiral)') ||
       trimmed.startsWith('━') ||
       trimmed.startsWith('───') ||
-      trimmed.startsWith('---') && trimmed === '---'
+      trimmed.startsWith('---') ||
+      trimmed.includes('┌') ||
+      trimmed.includes('└') ||
+      trimmed.includes('┐') ||
+      trimmed.includes('┘') ||
+      trimmed.includes('├') ||
+      trimmed.includes('┤') ||
+      trimmed.includes('┬') ||
+      trimmed.includes('┴') ||
+      trimmed.includes('┼') ||
+      trimmed.includes('═')
     ) {
+      logLines.push(trimmed)
       continue
     }
 
-    // ── Thinking / Planning / Status noise (ALL variants) ──
-    // After stripping Braille spinners, "⣿ Thinking..." becomes "Thinking..."
+    // ── Thinking / Planning / Status noise / File execution logs (ALL variants) ──
     if (
       trimmed.startsWith('Analyzing intent') ||
       trimmed.startsWith('Analyzing') ||
       trimmed.includes('Thinking...') ||
       trimmed.startsWith('Thinking') ||
+      trimmed.startsWith('Testing') ||
       trimmed.startsWith('Planning') ||
-      trimmed.startsWith('Executing') && trimmed.includes('...') ||
+      trimmed.startsWith('Writing code') ||
+      trimmed.startsWith('Running tests') ||
+      trimmed.startsWith('Verifying') ||
+      trimmed.startsWith('Final verification') ||
+      trimmed.startsWith('Debug attempt') ||
+      trimmed.startsWith('Re-running') ||
+      trimmed.startsWith('!') ||
+      trimmed.startsWith('→') ||
+      trimmed.startsWith('||') ||
+      trimmed.includes('Written:') ||
+      trimmed.includes('[FILE_OK]') ||
+      trimmed.includes('[FILE_ERR]') ||
+      trimmed.includes('[FILE_READ]') ||
+      trimmed.includes('[FILE_WRITE]') ||
+      trimmed.includes('[write_file]') ||
+      trimmed.includes('[modify_file]') ||
+      trimmed.includes('[execute]') ||
+      /^\[\d+\/\d+\]/.test(trimmed) ||
+      (trimmed.startsWith('Executing') && trimmed.includes('...')) ||
       trimmed.startsWith('Generating plan') ||
       trimmed.startsWith('Reflecting') ||
       /^\[.*?(CHAT|AGENT|INTENT|PLAN|STEP|DEBUG|VERIFY|TEST|REFLECT|FILE|WRITE|READ|EXEC|Nyx).*?\]/.test(trimmed) ||
@@ -106,8 +141,10 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.includes('DebuggerAgent') ||
       trimmed.includes('ReflectorAgent') ||
       trimmed.includes('ChatAgent') ||
-      // Catch any remaining status emoji prefixed lines
-      /^[^\w\s"'`({\[]/.test(trimmed) && trimmed.length < 40 && trimmed.includes('...')
+      trimmed.startsWith('✓') ||
+      trimmed.startsWith('X') ||
+      trimmed.startsWith('✗') ||
+      (/^[^\w\s"'`({\[]/.test(trimmed) && trimmed.length < 50 && trimmed.includes('...'))
     ) {
       logLines.push(trimmed)
       continue
@@ -128,9 +165,9 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
 }
 
 // ──────────────────────────────────────────────────────────────
-// Code Block: Claude-style dark code block with language badge + copy button
+// Code Block: Premium Claude-style dark code block with syntax highlighting & line numbers
 // ──────────────────────────────────────────────────────────────
-const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, value }) => {
+const CodeBlock: React.FC<{ language?: string; value: string }> = ({ language, value }) => {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = (): void => {
@@ -139,19 +176,29 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // Pre-process pipe-formatted single line code snippets into multiline code if needed
+  let displayValue = value
+  if (value.includes(' | ') && (value.includes('def ') || value.includes('function ') || value.includes('const '))) {
+    displayValue = value.replace(/ \| /g, '\n')
+  }
+
+  const lines = displayValue.split('\n')
+
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 bg-[#0d0d0f] shadow-lg">
+    <div className="my-4 rounded-2xl overflow-hidden border border-zinc-800/90 bg-[#121215] shadow-2xl">
       {/* Header bar with language + copy */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a1e] border-b border-zinc-800/80 text-xs font-mono select-none">
-        <span className="text-zinc-400 font-medium">{language || 'code'}</span>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[#1a1a1e] border-b border-zinc-800/80 text-xs font-mono select-none">
+        <span className="text-purple-300 font-semibold text-[11px] uppercase tracking-wider">
+          {language || 'code'}
+        </span>
         <button
           onClick={handleCopy}
-          className="flex items-center space-x-1.5 hover:text-purple-300 transition-colors text-zinc-500 text-[11px]"
+          className="flex items-center space-x-1.5 text-zinc-400 hover:text-zinc-200 transition-colors text-[11px] bg-zinc-800/60 hover:bg-zinc-700/80 px-2.5 py-1 rounded-lg border border-zinc-700/50"
         >
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-400">Copied!</span>
+              <span className="text-emerald-400 font-medium">Copied!</span>
             </>
           ) : (
             <>
@@ -161,10 +208,91 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
           )}
         </button>
       </div>
-      {/* Code content */}
-      <pre className="p-4 text-[13px] font-mono text-zinc-200 overflow-x-auto leading-relaxed">
-        <code>{value}</code>
-      </pre>
+
+      {/* Code content with line numbers */}
+      <div className="p-4 overflow-x-auto font-mono text-[13px] leading-relaxed text-zinc-200">
+        <div className="table w-full border-collapse">
+          {lines.map((line, lineIdx) => {
+            const tokens: React.ReactNode[] = []
+            let remaining = line
+
+            const commentMatch = remaining.match(/(\/\/.*|#.*)/)
+            let commentText = ''
+            if (commentMatch && commentMatch.index !== undefined) {
+              commentText = commentMatch[0]
+              remaining = line.slice(0, commentMatch.index)
+            }
+
+            const tokenRegex =
+              /(".*?"|'.*?'|`.*?`|\b(?:const|let|var|function|return|import|export|from|def|class|if|else|elif|while|for|in|try|except|async|await|with|as|break|continue|yield|pass|True|False|None|true|false|null|undefined)\b|\b\d+\b|\b[a-zA-Z_]\w*(?=\s*\())/g
+
+            let lastIdx = 0
+            let match: RegExpExecArray | null
+
+            while ((match = tokenRegex.exec(remaining)) !== null) {
+              const matchStr = match[0]
+              const matchIdx = match.index
+
+              if (matchIdx > lastIdx) {
+                tokens.push(remaining.slice(lastIdx, matchIdx))
+              }
+
+              if (/^["'`]/.test(matchStr)) {
+                tokens.push(
+                  <span key={`${lineIdx}-${matchIdx}`} className="text-emerald-300">
+                    {matchStr}
+                  </span>
+                )
+              } else if (
+                /^(const|let|var|function|return|import|export|from|def|class|if|else|elif|while|for|in|try|except|async|await|with|as|break|continue|yield|pass|True|False|None|true|false|null|undefined)$/.test(
+                  matchStr
+                )
+              ) {
+                tokens.push(
+                  <span key={`${lineIdx}-${matchIdx}`} className="text-purple-400 font-semibold">
+                    {matchStr}
+                  </span>
+                )
+              } else if (/^\d+$/.test(matchStr)) {
+                tokens.push(
+                  <span key={`${lineIdx}-${matchIdx}`} className="text-amber-400">
+                    {matchStr}
+                  </span>
+                )
+              } else {
+                tokens.push(
+                  <span key={`${lineIdx}-${matchIdx}`} className="text-blue-400">
+                    {matchStr}
+                  </span>
+                )
+              }
+
+              lastIdx = matchIdx + matchStr.length
+            }
+
+            if (lastIdx < remaining.length) {
+              tokens.push(remaining.slice(lastIdx))
+            }
+
+            if (commentText) {
+              tokens.push(
+                <span key={`${lineIdx}-comment`} className="text-zinc-500 italic">
+                  {commentText}
+                </span>
+              )
+            }
+
+            return (
+              <div key={lineIdx} className="table-row">
+                <span className="table-cell select-none text-right pr-4 text-zinc-600 text-[11px] font-mono w-8">
+                  {lineIdx + 1}
+                </span>
+                <span className="table-cell whitespace-pre">{tokens}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -175,7 +303,8 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
 export const ChatMessageItem: React.FC<{
   message: Message
   planPhase?: 'idle' | 'active' | 'complete' | 'error'
-}> = ({ message, planPhase }) => {
+  planState?: ParsedPlanState | null
+}> = ({ message, planPhase, planState }) => {
   const [showLogs, setShowLogs] = useState(false)
   const isUser = message.sender === 'user'
 
@@ -200,7 +329,7 @@ export const ChatMessageItem: React.FC<{
         </div>
 
         {/* Message Bubble Container */}
-        <div className="flex-1 space-y-1 min-w-0">
+        <div className={`flex-1 space-y-1.5 min-w-0 flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
           {/* Header info */}
           <div className={`flex items-center space-x-2 text-xs ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
             <span className="font-semibold text-zinc-300">
@@ -211,11 +340,23 @@ export const ChatMessageItem: React.FC<{
             </span>
           </div>
 
+          {/* Integrated Thought Process / AgentPlanning Block */}
+          {!isUser && planState && planState.steps.length > 0 && (
+            <div className="w-full my-1">
+              <AgentPlanning
+                title={planState.title}
+                currentPhase={planState.currentPhase}
+                activeSkill={planState.activeSkill}
+                steps={planState.steps}
+              />
+            </div>
+          )}
+
           {/* Message Content */}
           <div
             className={`text-sm text-zinc-200 leading-relaxed max-w-none break-words ${
               isUser
-                ? 'bg-[#27272a] p-3.5 rounded-2xl rounded-tr-none inline-block max-w-[85%]'
+                ? 'bg-[#27272a] p-3.5 rounded-2xl rounded-tr-none max-w-[85%]'
                 : 'w-full'
             }`}
           >
@@ -225,16 +366,26 @@ export const ChatMessageItem: React.FC<{
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  pre({ children }) {
+                    return <>{children}</>
+                  },
                   code({ node, inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '')
-                    return !inline && match ? (
-                      <CodeBlock
-                        language={match[1]}
-                        value={String(children).replace(/\n$/, '')}
-                        {...props}
-                      />
-                    ) : (
-                      <code className="bg-zinc-800 text-purple-300 font-mono text-[13px] px-1.5 py-0.5 rounded" {...props}>
+                    const contentStr = String(children).replace(/\n$/, '')
+                    const isMultiLine = contentStr.includes('\n') || contentStr.includes(' | ')
+
+                    if (!inline || match || isMultiLine) {
+                      return (
+                        <CodeBlock
+                          language={match ? match[1] : undefined}
+                          value={contentStr}
+                          {...props}
+                        />
+                      )
+                    }
+
+                    return (
+                      <code className="bg-zinc-800/80 text-purple-300 font-mono text-[13px] px-1.5 py-0.5 rounded border border-zinc-700/50" {...props}>
                         {children}
                       </code>
                     )
@@ -311,12 +462,6 @@ export const ChatMessageItem: React.FC<{
             </div>
           )}
 
-  const [showLogs, setShowLogs] = useState(false)
-  const isUser = message.sender === 'user'
-
-  // Rest of ChatMessageItem component...
-  // inside render:
-  // ...
           {message.isStreaming && planPhase !== 'complete' && (
             <div className="flex items-center space-x-1.5 text-xs text-purple-400 py-1 clear-both">
               <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
