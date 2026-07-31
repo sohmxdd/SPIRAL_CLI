@@ -81,7 +81,8 @@ When responding to casual input:
 - Stay in character as a system presence
 - Light humor is welcome
 
-Always respond as Nyx. Never break character."""
+_personality_override = os.getenv("SPIRAL_PERSONALITY_PROMPT", "").strip()
+if _personality_override:
+    CHAT_SYSTEM_PROMPT = f"{CHAT_SYSTEM_PROMPT}\n\nAdditional Personality & Persona Directives:\n{_personality_override}"
 
-CHAT_SYSTEM_PROMPT = os.getenv("CHAT_SYSTEM_PROMPT", CHAT_SYSTEM_PROMPT)
 
