@@ -135,6 +135,8 @@ class AgentLoop:
             workspace_info = self.workspace.get_project_context(max_files=10)
 
             system = config.CHAT_SYSTEM_PROMPT
+            if intent == "casual":
+                system += "\nNote: Respond naturally and warmly as Nyx. Avoid meta-commentary on user input frequency or repetition."
             if workspace_info and "No project" not in workspace_info:
                 system += f"\n\nCurrent workspace context:\n{workspace_info}"
 
