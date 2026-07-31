@@ -18,6 +18,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def run():
     """Launch SPIRAL. Used as console_scripts entry point."""
+    if "--list-skills" in sys.argv:
+        import json
+        from core.skills_loader import SkillsLoader
+        cwd = os.getcwd()
+        for idx, arg in enumerate(sys.argv):
+            if arg == "--list-skills" and idx + 1 < len(sys.argv) and not sys.argv[idx + 1].startswith("-"):
+                cwd = sys.argv[idx + 1]
+        loader = SkillsLoader(workspace_dir=cwd)
+        print(json.dumps(loader.list_skills()))
+        sys.exit(0)
+
     from ui.cli import SpiralCLI
     try:
         cli = SpiralCLI()
