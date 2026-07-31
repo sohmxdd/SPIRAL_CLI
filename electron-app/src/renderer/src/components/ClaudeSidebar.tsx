@@ -11,7 +11,7 @@ import {
   ChevronDown,
   Trash2,
   Settings,
-  Sparkles
+  Wrench
 } from 'lucide-react'
 
 interface ClaudeSidebarProps {
@@ -170,7 +170,7 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
             className="flex items-center justify-between text-xs font-medium text-zinc-400 hover:text-zinc-200 cursor-pointer"
           >
             <div className="flex items-center space-x-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              <Wrench className="w-3.5 h-3.5 text-purple-400" />
               <span className="uppercase tracking-wider text-[10px]">Loaded Skills</span>
             </div>
             <div className="flex items-center space-x-1">

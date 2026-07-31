@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Code,
   TerminalSquare,
-  Sparkles
+  Wrench
 } from 'lucide-react'
 
 export type PlanStepStatus = 'pending' | 'active' | 'success' | 'error'
@@ -135,7 +135,7 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
 
             {activeSkill && (
               <span className="text-[11px] font-mono bg-purple-950/60 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded-full flex items-center space-x-1">
-                <Sparkles className="w-3 h-3 text-purple-400" />
+                <Wrench className="w-3 h-3 text-purple-400" />
                 <span>Skill: {activeSkill}</span>
               </span>
             )}
