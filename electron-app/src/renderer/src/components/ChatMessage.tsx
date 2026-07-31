@@ -12,12 +12,22 @@ export interface Message {
   timestamp: Date
 }
 
-// Filter output stream to remove CLI noise, thinking/status lines, ASCII banners, and prompt borders.
-// Thinking/planning lines are now rendered by the AgentPlanning UI component — they must NOT leak into chat bubbles.
+// ──────────────────────────────────────────────────────────────
+// Filter output stream: strips CLI banners, ANSI, thinking/status noise, prompt borders.
+// Everything status-related is handled by AgentPlanning UI — must NOT leak into chat bubbles.
+// ──────────────────────────────────────────────────────────────
 export function filterStreamContent(raw: string): { cleanText: string; cleanLogs: string } {
-  // Strip ANSI escape sequences first
-  const noAnsi = raw.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-  const lines = noAnsi.split(/\r?\n/)
+  // 1. Strip ANSI escape sequences
+  const noAnsi = raw.replace(
+    // eslint-disable-next-line no-control-regex
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+    ''
+  )
+
+  // 2. Strip remaining Unicode Braille spinner characters (⣿ ⣾ ⣷ ⣯ etc.)
+  const noSpinners = noAnsi.replace(/[\u2800-\u28FF]/g, '')
+
+  const lines = noSpinners.split(/\r?\n/)
 
   const textLines: string[] = []
   const logLines: string[] = []
@@ -25,16 +35,16 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
   for (const line of lines) {
     const trimmed = line.trim()
 
-    // Skip empty lines at the start (they accumulate from filtered blocks)
+    // Skip empty lines at the start
     if (!trimmed && textLines.length === 0) continue
 
-    // 1. Filter out ASCII Banner & Startup Info
+    // ── Banner / Startup Info ──
     if (
       trimmed.includes('████') ||
       trimmed.includes('Autonomous Coding Agent') ||
       trimmed.includes('Powered by Groq') ||
       trimmed.includes('Guided by Nyx') ||
-      trimmed.includes('Welcome back!') ||
+      trimmed.includes('Welcome back') ||
       trimmed.includes('Tips for getting started') ||
       trimmed.includes('Type a task to enter Agent Mode') ||
       trimmed.includes('Ask a question for Chat Mode') ||
@@ -48,45 +58,42 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       (trimmed.includes('Context') && trimmed.includes('files')) ||
       trimmed.includes('System nominal') ||
       trimmed.includes('files online') ||
-      trimmed.includes('Ready to assist')
+      trimmed.includes('Ready to assist') ||
+      trimmed.includes('Session started') ||
+      trimmed.includes('session_id')
     ) {
       continue
     }
 
-    // 2. Filter out Terminal Prompt Box borders & input prompts
+    // ── Prompt box borders & input prompts ──
     if (
-      trimmed.startsWith('╭─') ||
-      trimmed.startsWith('╰─') ||
-      trimmed.startsWith('╭──') ||
-      trimmed.startsWith('╰──') ||
+      trimmed.startsWith('╭') ||
+      trimmed.startsWith('╰') ||
       trimmed.includes('(spiral) ➤') ||
       trimmed.includes('(spiral) >') ||
       trimmed === '│' ||
       trimmed.startsWith('│ (spiral)') ||
-      trimmed.startsWith('━━━') ||
-      trimmed.startsWith('───')
+      trimmed.startsWith('━') ||
+      trimmed.startsWith('───') ||
+      trimmed.startsWith('---') && trimmed === '---'
     ) {
       continue
     }
 
-    // 3. COMPLETELY FILTER all thinking/planning/status noise (now handled by AgentPlanning UI)
+    // ── Thinking / Planning / Status noise (ALL variants) ──
+    // After stripping Braille spinners, "⣿ Thinking..." becomes "Thinking..."
     if (
       trimmed.startsWith('Analyzing intent') ||
+      trimmed.startsWith('Analyzing') ||
+      trimmed.includes('Thinking...') ||
       trimmed.startsWith('Thinking') ||
-      trimmed === 'Thinking...' ||
-      trimmed.startsWith('[Nyx') ||
-      trimmed.startsWith('[CHAT]') ||
-      trimmed.startsWith('[AGENT]') ||
-      trimmed.startsWith('[INTENT]') ||
-      trimmed.startsWith('[PLAN]') ||
-      trimmed.startsWith('[STEP]') ||
-      trimmed.startsWith('[DEBUG]') ||
-      trimmed.startsWith('[VERIFY]') ||
-      trimmed.startsWith('[TEST]') ||
-      trimmed.startsWith('[REFLECT]') ||
+      trimmed.startsWith('Planning') ||
+      trimmed.startsWith('Executing') && trimmed.includes('...') ||
+      trimmed.startsWith('Generating plan') ||
+      trimmed.startsWith('Reflecting') ||
+      /^\[.*?(CHAT|AGENT|INTENT|PLAN|STEP|DEBUG|VERIFY|TEST|REFLECT|FILE|WRITE|READ|EXEC|Nyx).*?\]/.test(trimmed) ||
       trimmed.startsWith('nyx.') ||
-      trimmed.startsWith('Step ') && /Step \d+\/\d+/.test(trimmed) ||
-      trimmed.includes('Generating plan') ||
+      /^Step \d+\/\d+/.test(trimmed) ||
       trimmed.includes('Task complete') ||
       trimmed.includes('intent_detected') ||
       trimmed.includes('error_detected') ||
@@ -96,22 +103,32 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
       trimmed.includes('TesterAgent') ||
       trimmed.includes('VerifierAgent') ||
       trimmed.includes('DebuggerAgent') ||
-      trimmed.includes('ReflectorAgent')
+      trimmed.includes('ReflectorAgent') ||
+      trimmed.includes('ChatAgent') ||
+      // Catch any remaining status emoji prefixed lines
+      /^[^\w\s"'`({\[]/.test(trimmed) && trimmed.length < 40 && trimmed.includes('...')
     ) {
       logLines.push(trimmed)
       continue
     }
 
-    // 4. Genuine assistant response line
+    // ── Genuine response line ──
     textLines.push(line)
   }
 
-  const cleanText = textLines.join('\n').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '')
+  const cleanText = textLines
+    .join('\n')
+    .replace(/^\n+/, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\n+$/, '')
   const cleanLogs = logLines.join('\n')
 
   return { cleanText, cleanLogs }
 }
 
+// ──────────────────────────────────────────────────────────────
+// Code Block: Claude-style dark code block with language badge + copy button
+// ──────────────────────────────────────────────────────────────
 const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, value }) => {
   const [copied, setCopied] = useState(false)
 
@@ -122,17 +139,18 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
   }
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 bg-[#141416] shadow-sm">
-      <div className="flex items-center justify-between px-4 py-1.5 bg-[#1b1b1e] border-b border-zinc-800/80 text-xs text-zinc-400 font-mono select-none">
-        <span className="text-zinc-300 font-medium">{language || 'code'}</span>
+    <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 bg-[#0d0d0f] shadow-lg">
+      {/* Header bar with language + copy */}
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a1e] border-b border-zinc-800/80 text-xs font-mono select-none">
+        <span className="text-zinc-400 font-medium">{language || 'code'}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center space-x-1 hover:text-purple-300 transition-colors text-[11px]"
+          className="flex items-center space-x-1.5 hover:text-purple-300 transition-colors text-zinc-500 text-[11px]"
         >
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
+              <span className="text-emerald-400">Copied!</span>
             </>
           ) : (
             <>
@@ -142,13 +160,17 @@ const CodeBlock: React.FC<{ language: string; value: string }> = ({ language, va
           )}
         </button>
       </div>
-      <pre className="p-4 text-xs font-mono text-zinc-200 overflow-x-auto leading-relaxed bg-[#141416]">
+      {/* Code content */}
+      <pre className="p-4 text-[13px] font-mono text-zinc-200 overflow-x-auto leading-relaxed">
         <code>{value}</code>
       </pre>
     </div>
   )
 }
 
+// ──────────────────────────────────────────────────────────────
+// ChatMessageItem: renders user or assistant message with markdown
+// ──────────────────────────────────────────────────────────────
 export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => {
   const [showLogs, setShowLogs] = useState(false)
   const isUser = message.sender === 'user'
@@ -186,8 +208,10 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
 
           {/* Message Body */}
           <div
-            className={`text-sm text-zinc-200 leading-relaxed ${
-              isUser ? 'bg-[#27272a] py-2.5 px-4 rounded-2xl inline-block max-w-full float-right' : ''
+            className={`text-sm leading-relaxed ${
+              isUser
+                ? 'bg-[#27272a] text-zinc-200 py-2.5 px-4 rounded-2xl inline-block max-w-full float-right'
+                : 'text-zinc-200 prose-spiral'
             }`}
           >
             {isUser ? (
@@ -196,36 +220,97 @@ export const ChatMessageItem: React.FC<{ message: Message }> = ({ message }) => 
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  code({ inline, className, children, ...props }: any) {
+                  // Code blocks: detect by presence of className (```lang) or multiline children
+                  code({ className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '')
-                    return !inline ? (
-                      <CodeBlock
-                        language={match ? match[1] : ''}
-                        value={String(children).replace(/\n$/, '')}
-                      />
-                    ) : (
-                      <code className="bg-zinc-800/80 text-purple-300 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                    const content = String(children).replace(/\n$/, '')
+                    // Fenced code block (has language class) OR multiline code
+                    if (match || content.includes('\n')) {
+                      return (
+                        <CodeBlock
+                          language={match ? match[1] : ''}
+                          value={content}
+                        />
+                      )
+                    }
+                    // Inline code
+                    return (
+                      <code
+                        className="bg-zinc-800/80 text-purple-300 px-1.5 py-0.5 rounded text-xs font-mono"
+                        {...props}
+                      >
                         {children}
                       </code>
                     )
                   },
+                  // Wrap <pre> to avoid double-nesting with our CodeBlock
+                  pre({ children }: any) {
+                    return <>{children}</>
+                  },
                   p({ children }) {
-                    return <p className="mb-2 leading-relaxed text-zinc-200">{children}</p>
+                    return <p className="mb-3 leading-relaxed text-zinc-200">{children}</p>
+                  },
+                  strong({ children }) {
+                    return <strong className="font-semibold text-zinc-100">{children}</strong>
+                  },
+                  em({ children }) {
+                    return <em className="italic text-zinc-300">{children}</em>
                   },
                   ul({ children }) {
-                    return <ul className="list-disc pl-5 mb-2 space-y-1 text-zinc-200">{children}</ul>
+                    return <ul className="list-disc pl-5 mb-3 space-y-1.5 text-zinc-200">{children}</ul>
                   },
                   ol({ children }) {
-                    return <ol className="list-decimal pl-5 mb-2 space-y-1 text-zinc-200">{children}</ol>
+                    return <ol className="list-decimal pl-5 mb-3 space-y-1.5 text-zinc-200">{children}</ol>
+                  },
+                  li({ children }) {
+                    return <li className="text-zinc-200 leading-relaxed">{children}</li>
                   },
                   h1({ children }) {
-                    return <h1 className="text-lg font-bold text-zinc-100 mt-3 mb-1">{children}</h1>
+                    return <h1 className="text-lg font-bold text-zinc-100 mt-4 mb-2">{children}</h1>
                   },
                   h2({ children }) {
-                    return <h2 className="text-base font-semibold text-zinc-100 mt-2 mb-1">{children}</h2>
+                    return <h2 className="text-base font-semibold text-zinc-100 mt-3 mb-2">{children}</h2>
                   },
                   h3({ children }) {
-                    return <h3 className="text-sm font-semibold text-zinc-200 mt-2 mb-1">{children}</h3>
+                    return <h3 className="text-sm font-semibold text-zinc-200 mt-3 mb-1.5">{children}</h3>
+                  },
+                  blockquote({ children }) {
+                    return (
+                      <blockquote className="border-l-2 border-purple-500/50 pl-4 my-3 text-zinc-400 italic">
+                        {children}
+                      </blockquote>
+                    )
+                  },
+                  a({ href, children }) {
+                    return (
+                      <a
+                        href={href}
+                        className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    )
+                  },
+                  hr() {
+                    return <hr className="border-zinc-800 my-4" />
+                  },
+                  table({ children }) {
+                    return (
+                      <div className="my-3 overflow-x-auto rounded-lg border border-zinc-800">
+                        <table className="w-full text-xs">{children}</table>
+                      </div>
+                    )
+                  },
+                  thead({ children }) {
+                    return <thead className="bg-zinc-800/60 text-zinc-300">{children}</thead>
+                  },
+                  th({ children }) {
+                    return <th className="px-3 py-2 text-left font-medium">{children}</th>
+                  },
+                  td({ children }) {
+                    return <td className="px-3 py-2 border-t border-zinc-800/60 text-zinc-300">{children}</td>
                   }
                 }}
               >

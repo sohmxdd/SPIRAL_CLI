@@ -26,9 +26,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ currentDir, onSele
       {!currentDir && onSelectDirectory && (
         <button
           onClick={onSelectDirectory}
-          className="text-xs text-purple-300 hover:text-purple-200 bg-purple-950/40 border border-purple-800/50 px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-colors"
+          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
-          <span>📁 Select a workspace directory to begin execution</span>
+          Select a workspace directory to begin execution
         </button>
       )}
     </div>
