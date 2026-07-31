@@ -1,55 +1,70 @@
-"""
-SPIRAL Configuration
-Global settings for the autonomous coding agent.
-"""
-
 import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from the package directory (not cwd)
+# ─── Package Directories ───────────────────────────────────────
 _pkg_dir = Path(__file__).parent.resolve()
 _env_path = _pkg_dir / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
 else:
-    load_dotenv()  # fallback to cwd
+    load_dotenv()
 
 # ─── LLM Settings ──────────────────────────────────────────────
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+DEFAULT_MODEL = GROQ_MODEL
 FALLBACK_MODEL = "llama-3.1-8b-instant"
 MAX_TOKENS_PER_CALL = 4096
 TEMPERATURE = 0.2
+DEFAULT_TEMPERATURE = 0.2
 
 # ─── Agent Loop Settings ───────────────────────────────────────
-MAX_ITERATIONS = 10         # Max total loop cycles per task
-MAX_DEBUG_RETRIES = 3       # Max debug attempts per failure
-MAX_REPLAN_CYCLES = 3       # Max times plan can be refined
-EXEC_TIMEOUT = 30           # Seconds before subprocess kill
-MAX_CONTEXT_MESSAGES = 30   # Short-term memory window
+MAX_ITERATIONS = 10
+MAX_PLAN_STEPS = 10
+MAX_HISTORY_ITEMS = 20
+MAX_DEBUG_RETRIES = 3
+MAX_REPLAN_CYCLES = 3
+EXEC_TIMEOUT = 30
+MAX_CONTEXT_MESSAGES = 30
 
-# ─── Token Budget ──────────────────────────────────────────────
-TOKEN_BUDGET = 100000       # Total token budget per session
-TOKEN_WARN_THRESHOLD = 0.7  # Nyx warns at 70%
-TOKEN_CRITICAL = 0.9        # Nyx gets serious at 90%
+# ─── Token Budget & Thresholds ─────────────────────────────────
+TOKEN_BUDGET = 100000
+TOKEN_WARN = 0.7
+TOKEN_WARN_THRESHOLD = 0.7
+TOKEN_CRITICAL = 0.9
 
-# ─── Intent Classification ────────────────────────────────────
-INTENT_CLASSIFICATION = True  # Enable LLM-based intent analysis
+# ─── Features & Safety ─────────────────────────────────────────
+ENABLE_VERIFIER = True
+ENABLE_REFLECTOR = True
+INTENT_CLASSIFICATION = True
+SAFE_MODE = True
+CONFIRM_DESTRUCTIVE_COMMANDS = True
 
-# ─── Execution Safety ─────────────────────────────────────────
 SAFE_COMMANDS = [
     "python", "python3", "py", "pip", "pip3",
     "node", "npm", "npx",
     "ls", "dir", "cat", "type", "echo", "find",
     "mkdir", "touch", "cp", "copy", "move", "mv",
     "git", "cargo", "go", "rustc", "javac", "java",
-    "head", "tail", "wc", "sort", "grep",
+    "head", "tail", "wc", "sort", "grep", "cd", "make", "pytest", "unittest"
 ]
 
+DESTRUCTIVE_PATTERNS = [
+    r"rm\s+-rf\s+/",
+    r"rm\s+-rf\s+~",
+    r"mkfs",
+    r"dd\s+if=",
+    r">\s*/dev/sd",
+    r"del\s+/f\s+/s\s+/q\s+c:\\",
+    r"format\s+[c-z]:",
+]
+
+ALLOWED_COMMAND_PREFIXES = SAFE_COMMANDS
+
 # ─── Paths ─────────────────────────────────────────────────────
-WORKSPACE_DIR = os.getcwd()  # Work in current directory, not a sandbox
+WORKSPACE_DIR = os.getcwd()
 MEMORY_FILE = os.path.join(str(_pkg_dir), ".spiral_memory.json")
 WORKSPACE_CONTEXT_DIR = os.path.join(str(_pkg_dir), "memory", "workspace_context")
 
@@ -81,8 +96,8 @@ When responding to casual input:
 - Stay in character as a system presence
 - Light humor is welcome
 
+Always respond as Nyx. Never break character."""
+
 _personality_override = os.getenv("SPIRAL_PERSONALITY_PROMPT", "").strip()
 if _personality_override:
     CHAT_SYSTEM_PROMPT = f"{CHAT_SYSTEM_PROMPT}\n\nAdditional Personality & Persona Directives:\n{_personality_override}"
-
-

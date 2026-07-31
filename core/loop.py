@@ -10,6 +10,7 @@ Features:
 """
 
 import os
+import re
 import time
 from typing import Optional, Dict, List
 from core.state import AgentState, StepResult

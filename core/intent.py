@@ -42,17 +42,20 @@ INTENT_SYSTEM_PROMPT = """You are an intent classifier for SPIRAL, an autonomous
 
 Classify the user's input into EXACTLY ONE category:
 
-- "coding_task" — User wants code written, a project created, a file generated, or a program built.
-- "debugging_task" — User wants to fix a bug, resolve an error, or debug existing code.
-- "modification_task" — User wants to change, update, refactor, or improve existing code/files.
-- "question" — User is asking a question (technical or general) and expects an informational answer.
+- "coding_task" — User explicitly wants a physical file created/generated on disk, a workspace file created, or a project/app built.
+- "debugging_task" — User wants to fix a bug, resolve an error, or debug existing workspace code files.
+- "modification_task" — User wants to change, update, refactor, or edit existing workspace code files.
+- "question" — User is asking a question, requesting a code explanation, asking for code examples/snippets in chat, or seeking informational assistance WITHOUT asking to modify or write workspace files on disk.
 - "casual" — Greetings, small talk, expressions, or non-task input.
+
+CRITICAL RULE:
+If the user asks "give me the code for...", "show me...", "how do I...", "write a snippet for...", or asks for an algorithm explanation in chat, classify it as "question" (Chat mode) UNLESS they explicitly ask to create/save a file on disk (e.g., "create main.py", "save to stack.py", "build a new project").
 
 OUTPUT FORMAT (JSON):
 {
-  "intent": "coding_task",
+  "intent": "question",
   "confidence": 0.95,
-  "reasoning": "User wants to build a Flask API"
+  "reasoning": "User wants a code snippet answer in chat, not a new workspace file"
 }
 
 Respond with ONLY valid JSON. No markdown."""
@@ -61,9 +64,8 @@ Respond with ONLY valid JSON. No markdown."""
 # ─── Keyword Fallback Patterns ─────────────────────────────────
 
 _CODING_PATTERNS = [
-    r'\b(create|build|make|write|generate|implement|develop|code|scaffold|setup|init)\b',
+    r'\b(create|build|make|write|generate|implement|develop|code|scaffold|setup|init)\b.*\b(file|project|app|repo|script|\.py|\.js|\.ts)\b',
     r'\b(app|program|script|function|class|api|server|website|page|component)\b',
-    r'\b(html|css|javascript|python|react|flask|django|node|express)\b',
 ]
 
 _DEBUG_PATTERNS = [
@@ -76,9 +78,14 @@ _MODIFY_PATTERNS = [
 ]
 
 _QUESTION_PATTERNS = [
-    r'^(what|how|why|when|where|who|which|can you explain|explain|tell me about)\b',
+    r'^(what|how|why|when|where|who|which|can you|explain|tell me|give me|show me|provide|write an? (example|snippet|solution)|code for)\b',
     r'\?$',
-    r'\b(difference between|meaning of|purpose of|what is|what are)\b',
+    r'\b(difference between|meaning of|purpose of|what is|what are|example of|snippet for|how to|code for)\b',
+]
+
+_EXPLICIT_FILE_PATTERNS = [
+    r'\b(create|make|build|save to|write to|generate|scaffold)\b.*\b(file|project|app|repo|script\.py|\.js|\.ts|\.py|\.html)\b',
+    r'\b(new project|new app|create file|make file)\b'
 ]
 
 _CASUAL_PATTERNS = [
@@ -116,9 +123,9 @@ class IntentAnalyzer:
         except Exception:
             # Fallback to keyword classification
             return quick or IntentResult(
-                intent=INTENT_CODING,
-                confidence=0.5,
-                reasoning="Fallback: treating as coding task",
+                intent=INTENT_QUESTION,
+                confidence=0.7,
+                reasoning="Fallback: treating as question in chat mode",
             )
 
     def _llm_classify(self, user_input: str) -> IntentResult:
@@ -128,13 +135,13 @@ class IntentAnalyzer:
             system_prompt=INTENT_SYSTEM_PROMPT,
         )
 
-        intent = result.get("intent", INTENT_CODING)
+        intent = result.get("intent", INTENT_QUESTION)
         confidence = result.get("confidence", 0.7)
         reasoning = result.get("reasoning", "")
 
         # Validate intent
         if intent not in ALL_INTENTS:
-            intent = INTENT_CODING
+            intent = INTENT_QUESTION
             confidence = 0.5
 
         return IntentResult(
@@ -159,14 +166,16 @@ class IntentAnalyzer:
                     reasoning="Keyword match: casual/greeting",
                 )
 
-        # Check questions
-        for pattern in _QUESTION_PATTERNS:
-            if re.search(pattern, lower, re.IGNORECASE):
-                return IntentResult(
-                    intent=INTENT_QUESTION,
-                    confidence=0.9,
-                    reasoning="Keyword match: question pattern",
-                )
+        # Explicit check for questions / code inquiries WITHOUT explicit file creation
+        is_question = any(re.search(p, lower, re.IGNORECASE) for p in _QUESTION_PATTERNS)
+        is_file_req = any(re.search(p, lower, re.IGNORECASE) for p in _EXPLICIT_FILE_PATTERNS)
+
+        if is_question and not is_file_req:
+            return IntentResult(
+                intent=INTENT_QUESTION,
+                confidence=0.95,
+                reasoning="Keyword match: code inquiry in chat mode (no file creation requested)",
+            )
 
         # Check debug
         for pattern in _DEBUG_PATTERNS:
@@ -186,17 +195,4 @@ class IntentAnalyzer:
                     reasoning="Keyword match: modification pattern",
                 )
 
-        # Check coding
-        coding_score = 0
-        for pattern in _CODING_PATTERNS:
-            if re.search(pattern, lower, re.IGNORECASE):
-                coding_score += 1
-        if coding_score >= 2:
-            return IntentResult(
-                intent=INTENT_CODING,
-                confidence=0.85,
-                reasoning="Keyword match: coding task pattern",
-            )
-
-        # Uncertain — return None to trigger LLM
         return None
