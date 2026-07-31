@@ -24,6 +24,30 @@ export interface ParsedPlanState {
   steps: ParsedStep[]
 }
 
+/** Serializable chat session (stored as JSON on disk) */
+export interface ChatSessionMeta {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messageCount: number
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  messages: Array<{
+    id: string
+    sender: 'user' | 'assistant'
+    content: string
+    rawLogs?: string
+    timestamp: string
+  }>
+  createdAt: string
+  updatedAt: string
+  workingDir?: string | null
+}
+
 export interface SpiralAPI {
   selectDirectory: () => Promise<string | null>
   selectFile: () => Promise<string | null>
@@ -36,4 +60,10 @@ export interface SpiralAPI {
   onAgentStderr: (callback: (data: string) => void) => () => void
   onAgentExit: (callback: (code: number | null) => void) => () => void
   onAgentPlanUpdate: (callback: (plan: ParsedPlanState) => void) => () => void
+
+  // Chat session persistence
+  saveSession: (session: ChatSession) => Promise<boolean>
+  loadSession: (id: string) => Promise<ChatSession | null>
+  listSessions: () => Promise<ChatSessionMeta[]>
+  deleteSession: (id: string) => Promise<boolean>
 }

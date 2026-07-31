@@ -3,6 +3,7 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import { existsSync, readdirSync, statSync } from 'fs'
 import { join, resolve } from 'path'
 import { AgentOutputParser } from './agentOutputParser'
+import { chatSessionStore } from './chatSessionStore'
 
 export interface FileNode {
   name: string
@@ -161,6 +162,24 @@ export class AgentManager {
 
     ipcMain.handle('agent:isRunning', async () => {
       return this.currentChild !== null
+    })
+
+    // ── Chat Session Persistence ──
+    ipcMain.handle('chat:save', async (_, session) => {
+      chatSessionStore.saveSession(session)
+      return true
+    })
+
+    ipcMain.handle('chat:load', async (_, id: string) => {
+      return chatSessionStore.loadSession(id)
+    })
+
+    ipcMain.handle('chat:list', async () => {
+      return chatSessionStore.listSessions()
+    })
+
+    ipcMain.handle('chat:delete', async (_, id: string) => {
+      return chatSessionStore.deleteSession(id)
     })
   }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FileNode } from '../types'
+import { FileNode, ChatSessionMeta } from '../types'
 import { FileTree } from './FileTree'
 import {
   Plus,
@@ -8,7 +8,8 @@ import {
   RefreshCw,
   MessageSquare,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react'
 
 interface ClaudeSidebarProps {
@@ -18,7 +19,10 @@ interface ClaudeSidebarProps {
   onSelectDirectory: () => void
   onRefreshDirectory: () => void
   onSelectFile?: (file: FileNode) => void
-  recentChats?: string[]
+  sessionList: ChatSessionMeta[]
+  activeSessionId: string | null
+  onLoadSession: (id: string) => void
+  onDeleteSession: (id: string) => void
 }
 
 export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
@@ -28,10 +32,44 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
   onSelectDirectory,
   onRefreshDirectory,
   onSelectFile,
-  recentChats = []
+  sessionList,
+  activeSessionId,
+  onLoadSession,
+  onDeleteSession
 }) => {
   const [showFiles, setShowFiles] = useState(false)
   const dirName = currentDir ? currentDir.split(/[/\\]/).pop() || currentDir : 'No Directory'
+
+  // Group sessions: Today, Yesterday, Previous 7 Days, Older
+  const groupSessions = (): Record<string, ChatSessionMeta[]> => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today.getTime() - 86400000)
+    const lastWeek = new Date(today.getTime() - 7 * 86400000)
+
+    const groups: Record<string, ChatSessionMeta[]> = {}
+
+    for (const s of sessionList) {
+      const d = new Date(s.updatedAt)
+      let group: string
+      if (d >= today) {
+        group = 'Today'
+      } else if (d >= yesterday) {
+        group = 'Yesterday'
+      } else if (d >= lastWeek) {
+        group = 'Previous 7 Days'
+      } else {
+        group = 'Older'
+      }
+      if (!groups[group]) groups[group] = []
+      groups[group].push(s)
+    }
+
+    return groups
+  }
+
+  const grouped = groupSessions()
+  const groupOrder = ['Today', 'Yesterday', 'Previous 7 Days', 'Older']
 
   return (
     <div className="w-64 h-full bg-[#18181b] border-r border-zinc-800/80 flex flex-col justify-between select-none text-zinc-300">
@@ -98,27 +136,56 @@ export const ClaudeSidebar: React.FC<ClaudeSidebarProps> = ({
           )}
         </div>
 
-        {/* Recents List */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {recentChats.length > 0 && (
-            <>
-              <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider px-2 py-1">
-                Recents
-              </div>
-              {recentChats.map((chat, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-zinc-800/60 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 cursor-default transition-colors truncate"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                  <span className="truncate">{chat}</span>
+        {/* Chat Sessions List (persistent, grouped by time) */}
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+          {sessionList.length === 0 ? (
+            <div className="text-[11px] text-zinc-600 px-2 py-4 text-center">
+              No chat history yet
+            </div>
+          ) : (
+            groupOrder.map((groupName) => {
+              const sessions = grouped[groupName]
+              if (!sessions || sessions.length === 0) return null
+
+              return (
+                <div key={groupName}>
+                  <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider px-2 py-1">
+                    {groupName}
+                  </div>
+                  <div className="space-y-0.5">
+                    {sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        onClick={() => onLoadSession(session.id)}
+                        className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                          activeSessionId === session.id
+                            ? 'bg-purple-950/40 text-purple-200 border border-purple-800/30'
+                            : 'hover:bg-zinc-800/60 text-zinc-300 hover:text-zinc-100'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <MessageSquare className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                          <span className="truncate">{session.title}</span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteSession(session.id)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 p-0.5 rounded transition-opacity shrink-0"
+                          title="Delete chat"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </>
+              )
+            })
           )}
         </div>
       </div>
     </div>
   )
 }
-

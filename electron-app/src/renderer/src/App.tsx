@@ -5,8 +5,13 @@ import { ChatMessageItem, Message } from './components/ChatMessage'
 import { ClaudeInput } from './components/ClaudeInput'
 import { Terminal } from './components/Terminal'
 import { AgentPlanning } from './components/ui/agent-planning'
-import { FileNode, ParsedPlanState } from './types'
+import { FileNode, ParsedPlanState, ChatSessionMeta } from './types'
 import { FolderOpen, Bot, TerminalSquare, AlertTriangle, X } from 'lucide-react'
+
+// Generate a short unique ID
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
 
 export default function App(): React.JSX.Element {
   const [currentDir, setCurrentDir] = useState<string | null>(null)
@@ -15,14 +20,55 @@ export default function App(): React.JSX.Element {
   const [showTerminal, setShowTerminal] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
-  const [recentChats, setRecentChats] = useState<string[]>([])
   const [planState, setPlanState] = useState<ParsedPlanState | null>(null)
 
-  // Track whether the FIRST message of a conversation has been recorded to recents
-  const conversationTitleRef = useRef<string | null>(null)
+  // ── Session management state ──
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [sessionList, setSessionList] = useState<ChatSessionMeta[]>([])
 
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const activeMessageIdRef = useRef<string | null>(null)
+  // Debounce saving so we don't write to disk on every stdout chunk
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Load session list from disk on app start ──
+  useEffect(() => {
+    refreshSessionList()
+  }, [])
+
+  const refreshSessionList = async (): Promise<void> => {
+    const list = await window.api.listSessions()
+    setSessionList(list)
+  }
+
+  // ── Persist current session to disk (debounced) ──
+  const persistSession = useCallback(
+    (sessionId: string, msgs: Message[], title?: string) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(async () => {
+        const sessionTitle =
+          title ||
+          (msgs.find((m) => m.sender === 'user')?.content.slice(0, 50) || 'Untitled Chat')
+
+        await window.api.saveSession({
+          id: sessionId,
+          title: sessionTitle,
+          messages: msgs.map((m) => ({
+            id: m.id,
+            sender: m.sender,
+            content: m.content,
+            rawLogs: m.rawLogs,
+            timestamp: m.timestamp.toISOString()
+          })),
+          createdAt: msgs[0]?.timestamp.toISOString() || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          workingDir: currentDir
+        })
+        refreshSessionList()
+      }, 600)
+    },
+    [currentDir]
+  )
 
   // Load directory tree
   const loadDirectoryTree = useCallback(async (dirPath: string) => {
@@ -34,7 +80,7 @@ export default function App(): React.JSX.Element {
     }
   }, [])
 
-  // Select working directory (does NOT auto-spawn agent — that happens on first send)
+  // Select working directory
   const handleSelectDirectory = async (): Promise<string | null> => {
     try {
       const selected = await window.api.selectDirectory()
@@ -64,24 +110,70 @@ export default function App(): React.JSX.Element {
     )
   }
 
+  // ── New Chat ──
   const handleNewChat = (): void => {
     setMessages([])
     setPlanState(null)
     activeMessageIdRef.current = null
-    conversationTitleRef.current = null
+    setActiveSessionId(null)
   }
 
+  // ── Load an existing session from sidebar ──
+  const handleLoadSession = async (sessionId: string): Promise<void> => {
+    const session = await window.api.loadSession(sessionId)
+    if (!session) return
+
+    setActiveSessionId(session.id)
+    setPlanState(null)
+    activeMessageIdRef.current = null
+
+    // Restore messages from serialized format
+    setMessages(
+      session.messages.map((m) => ({
+        id: m.id,
+        sender: m.sender,
+        content: m.content,
+        rawLogs: m.rawLogs,
+        isStreaming: false,
+        timestamp: new Date(m.timestamp)
+      }))
+    )
+
+    // Restore working directory if saved
+    if (session.workingDir) {
+      setCurrentDir(session.workingDir)
+      await loadDirectoryTree(session.workingDir)
+    }
+  }
+
+  // ── Delete a session ──
+  const handleDeleteSession = async (sessionId: string): Promise<void> => {
+    await window.api.deleteSession(sessionId)
+    if (activeSessionId === sessionId) {
+      handleNewChat()
+    }
+    refreshSessionList()
+  }
+
+  // ── Send a message ──
   const handleSendMessage = async (userText: string): Promise<void> => {
     setErrorMessage(null)
 
+    // Create or reuse session ID
+    let sessionId = activeSessionId
+    if (!sessionId) {
+      sessionId = uid()
+      setActiveSessionId(sessionId)
+    }
+
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: uid(),
       sender: 'user',
       content: userText,
       timestamp: new Date()
     }
 
-    const assistantId = (Date.now() + 1).toString()
+    const assistantId = uid()
     const assistantMsg: Message = {
       id: assistantId,
       sender: 'assistant',
@@ -92,14 +184,12 @@ export default function App(): React.JSX.Element {
     }
 
     activeMessageIdRef.current = assistantId
-    setMessages((prev) => [...prev, userMsg, assistantMsg])
 
-    // Only record the FIRST message of a conversation as a recent chat entry
-    if (!conversationTitleRef.current && userText.length > 3) {
-      const title = userText.slice(0, 35) + (userText.length > 35 ? '...' : '')
-      conversationTitleRef.current = title
-      setRecentChats((prev) => [title, ...prev.filter((t) => t !== title).slice(0, 9)])
-    }
+    const nextMessages = [...messages, userMsg, assistantMsg]
+    setMessages(nextMessages)
+
+    // Persist immediately (creates session file on first message)
+    persistSession(sessionId, nextMessages)
 
     // Ensure agent process is active
     const running = await window.api.isAgentRunning()
@@ -141,8 +231,8 @@ export default function App(): React.JSX.Element {
 
       if (!currentId) return
 
-      setMessages((prev) =>
-        prev.map((msg) => {
+      setMessages((prev) => {
+        const updated = prev.map((msg) => {
           if (msg.id === currentId) {
             return {
               ...msg,
@@ -152,7 +242,12 @@ export default function App(): React.JSX.Element {
           }
           return msg
         })
-      )
+        // Auto-persist as content streams in (debounced)
+        if (activeSessionId) {
+          persistSession(activeSessionId, updated)
+        }
+        return updated
+      })
     })
 
     const unbindStderr = window.api.onAgentStderr((chunk: string) => {
@@ -177,9 +272,14 @@ export default function App(): React.JSX.Element {
       if (code !== 0 && code !== null) {
         setErrorMessage(`Python agent process exited unexpectedly with code ${code}.`)
       }
-      setMessages((prev) =>
-        prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
-      )
+      setMessages((prev) => {
+        const updated = prev.map((msg) => (msg.isStreaming ? { ...msg, isStreaming: false } : msg))
+        // Final persist when stream ends
+        if (activeSessionId) {
+          persistSession(activeSessionId, updated)
+        }
+        return updated
+      })
     })
 
     const unbindPlan = window.api.onAgentPlanUpdate((plan) => {
@@ -192,7 +292,7 @@ export default function App(): React.JSX.Element {
       unbindExit()
       unbindPlan()
     }
-  }, [])
+  }, [activeSessionId, currentDir])
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -200,6 +300,9 @@ export default function App(): React.JSX.Element {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
   }, [messages, planState])
+
+  // Find the currently-streaming assistant message ID for inline planning
+  const streamingAssistantId = messages.find((m) => m.isStreaming && m.sender === 'assistant')?.id
 
   return (
     <div className="flex h-screen w-screen bg-[#18181b] text-zinc-100 overflow-hidden font-sans">
@@ -211,7 +314,10 @@ export default function App(): React.JSX.Element {
         onSelectDirectory={handleSelectDirectory}
         onRefreshDirectory={handleRefreshDirectory}
         onSelectFile={handleSelectFileFromTree}
-        recentChats={recentChats}
+        sessionList={sessionList}
+        activeSessionId={activeSessionId}
+        onLoadSession={handleLoadSession}
+        onDeleteSession={handleDeleteSession}
       />
 
       {/* Main Content Area */}
@@ -283,13 +389,19 @@ export default function App(): React.JSX.Element {
                 {/* Scrollable Message List */}
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto py-4">
                   <div className="max-w-4xl mx-auto space-y-4 px-2">
-                    {/* Live Agent Planning UI Component */}
-                    {planState && planState.isAgentMode && planState.steps.length > 0 && (
-                      <AgentPlanning title={planState.title} steps={planState.steps} />
-                    )}
-
                     {messages.map((msg) => (
-                      <ChatMessageItem key={msg.id} message={msg} />
+                      <React.Fragment key={msg.id}>
+                        <ChatMessageItem message={msg} />
+                        {/* Show AgentPlanning inline under the currently-streaming assistant message */}
+                        {msg.id === streamingAssistantId &&
+                          planState &&
+                          planState.isAgentMode &&
+                          planState.steps.length > 0 && (
+                            <div className="pl-10 pr-4">
+                              <AgentPlanning title={planState.title} steps={planState.steps} />
+                            </div>
+                          )}
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>

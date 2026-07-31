@@ -19,6 +19,12 @@ export interface SpiralAPI {
   onAgentStderr: (callback: (data: string) => void) => () => void
   onAgentExit: (callback: (code: number | null) => void) => () => void
   onAgentPlanUpdate: (callback: (plan: any) => void) => () => void
+
+  // Chat session persistence
+  saveSession: (session: any) => Promise<boolean>
+  loadSession: (id: string) => Promise<any | null>
+  listSessions: () => Promise<any[]>
+  deleteSession: (id: string) => Promise<boolean>
 }
 
 const api: SpiralAPI = {
@@ -48,7 +54,13 @@ const api: SpiralAPI = {
     const handler = (_: any, plan: any): void => callback(plan)
     ipcRenderer.on('agent:planUpdate', handler)
     return () => ipcRenderer.removeListener('agent:planUpdate', handler)
-  }
+  },
+
+  // Chat session persistence
+  saveSession: (session: any) => ipcRenderer.invoke('chat:save', session),
+  loadSession: (id: string) => ipcRenderer.invoke('chat:load', id),
+  listSessions: () => ipcRenderer.invoke('chat:list'),
+  deleteSession: (id: string) => ipcRenderer.invoke('chat:delete', id)
 }
 
 if (process.contextIsolated) {
