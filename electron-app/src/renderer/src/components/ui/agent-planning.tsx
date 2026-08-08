@@ -115,12 +115,20 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
   return (
     <div className="w-full max-w-2xl mx-auto my-3 font-sans text-foreground select-none">
       {/* Outer Card Container */}
-      <div className="bg-card border border-border shadow-sm rounded-xl overflow-hidden transition-all duration-300">
+      <div
+        className={`bg-card border shadow-sm rounded-xl overflow-hidden transition-all duration-300 ${
+          hasError ? 'border-rose-500/40 bg-rose-950/10' : 'border-border'
+        }`}
+      >
         {/* Top Header / Trigger Badge */}
         <div
           onClick={() => setIsMainExpanded(!isMainExpanded)}
           className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors select-none ${
-            isMainExpanded ? 'bg-secondary/30 border-b border-border/50' : 'hover:bg-secondary/30'
+            hasError
+              ? 'bg-rose-950/20 border-b border-rose-800/40 hover:bg-rose-950/30'
+              : isMainExpanded
+              ? 'bg-secondary/30 border-b border-border/50'
+              : 'hover:bg-secondary/30'
           }`}
         >
           <div className="flex items-center gap-3">
