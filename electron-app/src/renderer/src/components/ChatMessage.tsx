@@ -12,6 +12,7 @@ export interface Message {
   content: string
   rawLogs?: string
   isStreaming?: boolean
+  planState?: ParsedPlanState | null
   timestamp: Date
 }
 
@@ -342,13 +343,13 @@ export const ChatMessageItem: React.FC<{
           </div>
 
           {/* Integrated Thought Process / AgentPlanning Block */}
-          {!isUser && planState && planState.steps.length > 0 && (
+          {!isUser && (message.planState || planState) && (message.planState || planState)!.steps.length > 0 && (
             <div className="w-full my-1">
               <AgentPlanning
-                title={planState.title}
-                currentPhase={planState.currentPhase}
-                activeSkill={planState.activeSkill}
-                steps={planState.steps}
+                title={(message.planState || planState)!.title}
+                currentPhase={(message.planState || planState)!.currentPhase}
+                activeSkill={(message.planState || planState)!.activeSkill}
+                steps={(message.planState || planState)!.steps}
               />
             </div>
           )}

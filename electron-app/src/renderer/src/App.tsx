@@ -74,6 +74,7 @@ export default function App(): React.JSX.Element {
           sender: m.sender,
           content: m.content,
           rawLogs: m.rawLogs,
+          planState: m.planState,
           timestamp: m.timestamp.toISOString()
         })),
         createdAt: msgs[0]?.timestamp.toISOString() || new Date().toISOString(),
@@ -163,6 +164,7 @@ export default function App(): React.JSX.Element {
         sender: m.sender,
         content: m.content,
         rawLogs: m.rawLogs,
+        planState: m.planState,
         isStreaming: false,
         timestamp: new Date(m.timestamp)
       }))
@@ -331,6 +333,12 @@ export default function App(): React.JSX.Element {
 
     const unbindPlan = window.api.onAgentPlanUpdate((plan) => {
       setPlanState(plan)
+      const currentId = activeMessageIdRef.current
+      if (currentId) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === currentId ? { ...msg, planState: plan } : msg))
+        )
+      }
     })
 
     return () => {

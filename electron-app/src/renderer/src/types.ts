@@ -62,6 +62,7 @@ export interface ChatSession {
     sender: 'user' | 'assistant'
     content: string
     rawLogs?: string
+    planState?: ParsedPlanState | null
     timestamp: string
   }>
   createdAt: string
