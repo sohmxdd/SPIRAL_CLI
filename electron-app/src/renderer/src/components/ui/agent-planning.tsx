@@ -149,7 +149,10 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
             </span>
 
             {activeSkill && (
-              <span className="text-[11px] font-mono bg-purple-950/60 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded-full flex items-center space-x-1">
+              <span
+                title={`Active Skill Loaded: ${activeSkill} (defined in .spiral/skills/${activeSkill}.md)`}
+                className="text-[11px] font-mono bg-purple-950/60 text-purple-300 border border-purple-800/40 hover:border-purple-600/60 hover:text-purple-200 px-2.5 py-0.5 rounded-full flex items-center space-x-1 cursor-help transition-all shadow-sm"
+              >
                 <Wrench className="w-3 h-3 text-purple-400" />
                 <span>Skill: {activeSkill}</span>
               </span>
