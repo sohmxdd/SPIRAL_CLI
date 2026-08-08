@@ -28,6 +28,12 @@ export class AgentOutputParser {
   }
 
   private stepMap: Map<string, ParsedStep> = new Map()
+  private stepStartTimes: Map<string, number> = new Map()
+
+  private formatDuration(ms: number): string {
+    if (ms < 1000) return `${ms}ms`
+    return `${(ms / 1000).toFixed(1)}s`
+  }
 
   public reset(): void {
     this.currentPlan = {
@@ -37,6 +43,7 @@ export class AgentOutputParser {
       steps: []
     }
     this.stepMap.clear()
+    this.stepStartTimes.clear()
   }
 
   public parseChunk(chunk: string): ParsedPlanState {
@@ -173,11 +180,18 @@ export class AgentOutputParser {
     subagent: ParsedStep['subagent'],
     content?: string
   ): void {
+    const now = Date.now()
     if (this.stepMap.has(id)) {
       const step = this.stepMap.get(id)!
+      const prevStatus = step.status
       step.status = status
       if (content) step.content = (step.content ? step.content + '\n' : '') + content
+      if (prevStatus === 'active' && (status === 'success' || status === 'error')) {
+        const start = this.stepStartTimes.get(id) || now
+        step.duration = this.formatDuration(now - start)
+      }
     } else {
+      this.stepStartTimes.set(id, now)
       this.stepMap.set(id, {
         id,
         title,
@@ -189,26 +203,37 @@ export class AgentOutputParser {
   }
 
   private markPreviousStepsSuccess(): void {
-    for (const step of this.stepMap.values()) {
+    const now = Date.now()
+    for (const [id, step] of this.stepMap.entries()) {
       if (step.status === 'active') {
         step.status = 'success'
+        const start = this.stepStartTimes.get(id) || now
+        step.duration = this.formatDuration(now - start)
       }
     }
   }
 
   public markAllStepsSuccess(): void {
-    for (const step of this.stepMap.values()) {
+    const now = Date.now()
+    for (const [id, step] of this.stepMap.entries()) {
       if (step.status !== 'error') {
         step.status = 'success'
+        if (!step.duration) {
+          const start = this.stepStartTimes.get(id) || now
+          step.duration = this.formatDuration(now - start)
+        }
       }
     }
   }
 
   public markError(): void {
+    const now = Date.now()
     this.currentPlan.currentPhase = 'error'
-    for (const step of this.stepMap.values()) {
+    for (const [id, step] of this.stepMap.entries()) {
       if (step.status === 'active') {
         step.status = 'error'
+        const start = this.stepStartTimes.get(id) || now
+        step.duration = this.formatDuration(now - start)
       }
     }
   }
