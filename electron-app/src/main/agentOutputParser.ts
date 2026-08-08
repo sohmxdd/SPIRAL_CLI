@@ -148,7 +148,10 @@ export class AgentOutputParser {
       if (trimmed.includes('Task complete') || trimmed.includes('task_complete')) {
         this.markAllStepsSuccess()
         this.currentPlan.currentPhase = 'complete'
-        this.currentPlan.title = `Thought for ${this.stepMap.size} step${this.stepMap.size === 1 ? '' : 's'}`
+        this.currentPlan.title =
+          this.stepMap.size > 0
+            ? `Thought for ${this.stepMap.size} step${this.stepMap.size === 1 ? '' : 's'}`
+            : 'Thought process completed'
         continue
       }
 
@@ -165,7 +168,10 @@ export class AgentOutputParser {
       ) {
         this.markAllStepsSuccess()
         this.currentPlan.currentPhase = 'complete'
-        this.currentPlan.title = `Thought for ${this.stepMap.size} step${this.stepMap.size === 1 ? '' : 's'}`
+        this.currentPlan.title =
+          this.stepMap.size > 0
+            ? `Thought for ${this.stepMap.size} step${this.stepMap.size === 1 ? '' : 's'}`
+            : 'Thought process completed'
       }
     }
 
