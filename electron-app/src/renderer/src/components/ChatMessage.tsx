@@ -170,7 +170,8 @@ export function filterStreamContent(raw: string): { cleanText: string; cleanLogs
 const CodeBlock: React.FC<{ language?: string; value: string }> = ({ language, value }) => {
   const [copied, setCopied] = useState(false)
 
-  const handleCopy = (): void => {
+  const handleCopy = (e: React.MouseEvent): void => {
+    e.stopPropagation()
     navigator.clipboard.writeText(value)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -444,9 +445,12 @@ export const ChatMessageItem: React.FC<{
 
           {/* Collapsible Execution Logs for Assistant */}
           {!isUser && rawLogs && (
-            <div className="mt-2 clear-both">
+            <div className="mt-2 clear-both w-full">
               <button
-                onClick={() => setShowLogs(!showLogs)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowLogs(!showLogs)
+                }}
                 className="flex items-center space-x-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors py-1"
               >
                 <Terminal className="w-3.5 h-3.5 text-purple-400" />
@@ -455,7 +459,7 @@ export const ChatMessageItem: React.FC<{
               </button>
 
               {showLogs && (
-                <div className="mt-1.5 p-3 bg-[#141416] border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-400 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                <div className="mt-1.5 p-3 bg-[#141416] border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-400 max-h-56 overflow-y-auto overflow-x-auto whitespace-pre-wrap break-all select-text">
                   {rawLogs}
                 </div>
               )}
