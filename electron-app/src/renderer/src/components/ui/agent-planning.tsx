@@ -261,10 +261,16 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
                   </div>
                 )
               })}
-            </div>
+            {currentPhase === 'active' && (
+              <div className="flex items-center space-x-2 pt-2 border-t border-border/40 text-[11px] text-blue-400 font-mono italic">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping shrink-0" />
+                <span>Subagent execution loop in progress...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }
