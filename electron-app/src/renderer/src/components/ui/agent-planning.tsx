@@ -48,7 +48,14 @@ export const getSubagentIcon = (subagent?: string): React.ReactNode => {
     case 'DebuggerAgent':
       return <AlertTriangle className="w-3.5 h-3.5" />
     case 'ReflectorAgent':
+    case 'CodeReviewer':
       return <FileText className="w-3.5 h-3.5" />
+    case 'SkillsLoader':
+      return <Wrench className="w-3.5 h-3.5 text-purple-400" />
+    case 'ToolExecutor':
+      return <TerminalSquare className="w-3.5 h-3.5 text-blue-400" />
+    case 'ContextAnalyzer':
+      return <Search className="w-3.5 h-3.5 text-emerald-400" />
     default:
       return <Search className="w-3.5 h-3.5" />
   }
