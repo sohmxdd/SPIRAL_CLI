@@ -226,14 +226,14 @@ export const AgentPlanning: React.FC<AgentPlanningProps> = ({
                       {/* Step Expanded Content */}
                       {step.content && (
                         <div
-                          className={`grid transition-all duration-400 ease-in-out ${
+                          className={`grid transition-all duration-300 ease-in-out ${
                             isStepExpanded
                               ? 'grid-rows-[1fr] mt-2 opacity-100'
                               : 'grid-rows-[0fr] mt-0 opacity-0'
                           }`}
                         >
                           <div className="overflow-hidden">
-                            <div className="pt-1 pb-2 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap bg-secondary/20 p-2.5 rounded-md border border-border/50">
+                            <div className="font-mono text-[11px] text-zinc-300 bg-[#141416] p-3 rounded-lg border border-zinc-800/80 max-h-48 overflow-y-auto whitespace-pre-wrap break-all shadow-inner select-text">
                               {step.content}
                             </div>
                           </div>
