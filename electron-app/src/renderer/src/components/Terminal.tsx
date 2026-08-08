@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { Trash2 } from 'lucide-react'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalProps {
@@ -11,6 +12,13 @@ export const Terminal: React.FC<TerminalProps> = ({ className = '' }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+
+  const handleClear = (): void => {
+    if (xtermRef.current) {
+      xtermRef.current.clear()
+      xtermRef.current.writeln('\x1b[38;2;113;113;122m[Terminal output cleared]\x1b[0m\r\n')
+    }
+  }
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -51,7 +59,18 @@ export const Terminal: React.FC<TerminalProps> = ({ className = '' }) => {
     term.loadAddon(fitAddon)
 
     term.open(containerRef.current)
-    fitAddon.fit()
+
+    const safeFit = (): void => {
+      try {
+        if (containerRef.current && containerRef.current.clientWidth > 0 && containerRef.current.clientHeight > 0) {
+          fitAddon.fit()
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    safeFit()
 
     xtermRef.current = term
     fitAddonRef.current = fitAddon
@@ -77,27 +96,36 @@ export const Terminal: React.FC<TerminalProps> = ({ className = '' }) => {
 
     // Resize handling
     const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-      } catch {
-        // ignore
-      }
+      safeFit()
     })
 
     resizeObserver.observe(containerRef.current)
+    window.addEventListener('resize', safeFit)
 
     return () => {
       unbindStdout()
       unbindStderr()
       unbindExit()
+      window.removeEventListener('resize', safeFit)
       resizeObserver.disconnect()
       term.dispose()
     }
   }, [])
 
   return (
-    <div className={`relative h-full w-full bg-[#18181b] p-2 overflow-hidden ${className}`}>
-      <div ref={containerRef} className="h-full w-full" />
+    <div className={`relative h-full w-full bg-[#18181b] p-2 overflow-hidden flex flex-col ${className}`}>
+      <div className="flex items-center justify-between pb-1 px-1 text-[11px] text-zinc-500 font-mono select-none border-b border-zinc-800/60 mb-2">
+        <span>Console Buffer</span>
+        <button
+          onClick={handleClear}
+          className="flex items-center space-x-1 hover:text-zinc-300 transition-colors py-0.5 px-1.5 rounded hover:bg-zinc-800"
+          title="Clear Terminal Output"
+        >
+          <Trash2 className="w-3 h-3 text-zinc-400" />
+          <span>Clear</span>
+        </button>
+      </div>
+      <div ref={containerRef} className="flex-1 w-full h-full min-h-0" />
     </div>
   )
 }
