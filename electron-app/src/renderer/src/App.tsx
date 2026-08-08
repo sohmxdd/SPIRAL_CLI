@@ -429,7 +429,11 @@ export default function App(): React.JSX.Element {
             <div className={`flex-1 flex flex-col min-h-0 ${showTerminal ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
               {messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 space-y-6">
-                  <WelcomeScreen currentDir={currentDir} onSelectDirectory={handleSelectDirectory} />
+                  <WelcomeScreen
+                    currentDir={currentDir}
+                    onSelectDirectory={handleSelectDirectory}
+                    onSendPrompt={handleSendMessage}
+                  />
                   <ClaudeInput
                     onSendMessage={handleSendMessage}
                     onStopAgent={handleStopAgent}
