@@ -89,9 +89,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, onSettingsS
               <label className="text-xs font-medium text-zinc-300 flex items-center space-x-2">
                 <span>Groq API Key</span>
                 {apiKey ? (
-                  <span className="text-[11px] text-zinc-400 font-normal">
-                    (Encrypted at rest via safeStorage)
-                  </span>
+                  apiKey.startsWith('gsk_') ? (
+                    <span className="text-[11px] text-zinc-400 font-normal">
+                      (Valid format • Encrypted via safeStorage)
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-amber-400 font-medium">
+                      (Warning: Key should start with gsk_)
+                    </span>
+                  )
                 ) : (
                   <span className="text-xs text-rose-500 font-semibold">
                     Warning: API key missing
