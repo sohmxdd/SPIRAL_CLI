@@ -229,8 +229,33 @@ export class AgentManager {
     const workingDir = cwd || resolve(mainPyPath, '..')
 
     return new Promise((res) => {
+      let finished = false
+      let proc: any = null
+
+      const timer = setTimeout(() => {
+        if (!finished) {
+          finished = true
+          if (proc) {
+            try {
+              proc.kill()
+            } catch {
+              // ignore
+            }
+          }
+          res([])
+        }
+      }, 5000)
+
+      const finish = (result: any[]): void => {
+        if (!finished) {
+          finished = true
+          clearTimeout(timer)
+          res(result)
+        }
+      }
+
       try {
-        const proc = spawn(pythonExe, ['-u', mainPyPath, '--list-skills', workingDir], {
+        proc = spawn(pythonExe, ['-u', mainPyPath, '--list-skills', workingDir], {
           cwd: workingDir,
           env: {
             ...process.env,
@@ -248,15 +273,15 @@ export class AgentManager {
         proc.on('close', () => {
           try {
             const data = JSON.parse(stdout.trim())
-            res(Array.isArray(data) ? data : [])
+            finish(Array.isArray(data) ? data : [])
           } catch {
-            res([])
+            finish([])
           }
         })
 
-        proc.on('error', () => res([]))
+        proc.on('error', () => finish([]))
       } catch {
-        res([])
+        finish([])
       }
     })
   }
