@@ -19,7 +19,19 @@ export interface ParsedStep {
   id: string
   title: string
   status: PlanStepStatus
-  subagent: 'PlannerAgent' | 'CoderAgent' | 'TesterAgent' | 'VerifierAgent' | 'DebuggerAgent' | 'ReflectorAgent' | 'IntentAnalyzer' | 'General'
+  subagent:
+    | 'PlannerAgent'
+    | 'CoderAgent'
+    | 'TesterAgent'
+    | 'VerifierAgent'
+    | 'DebuggerAgent'
+    | 'ReflectorAgent'
+    | 'IntentAnalyzer'
+    | 'ToolExecutor'
+    | 'SkillsLoader'
+    | 'CodeReviewer'
+    | 'ContextAnalyzer'
+    | 'General'
   duration?: string
   content?: string
   defaultExpanded?: boolean

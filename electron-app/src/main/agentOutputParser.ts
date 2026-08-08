@@ -5,7 +5,19 @@ export interface ParsedStep {
   id: string
   title: string
   status: PlanStepStatus
-  subagent: 'PlannerAgent' | 'CoderAgent' | 'TesterAgent' | 'VerifierAgent' | 'DebuggerAgent' | 'ReflectorAgent' | 'IntentAnalyzer' | 'General'
+  subagent:
+    | 'PlannerAgent'
+    | 'CoderAgent'
+    | 'TesterAgent'
+    | 'VerifierAgent'
+    | 'DebuggerAgent'
+    | 'ReflectorAgent'
+    | 'IntentAnalyzer'
+    | 'ToolExecutor'
+    | 'SkillsLoader'
+    | 'CodeReviewer'
+    | 'ContextAnalyzer'
+    | 'General'
   duration?: string
   content?: string
   defaultExpanded?: boolean
@@ -107,6 +119,32 @@ export class AgentOutputParser {
           `Step ${stepNum}: ${description}`,
           'active',
           'CoderAgent'
+        )
+        continue
+      }
+
+      // Detect File Operation: Written: file.py / [FILE_OK] / Created: file.py
+      const fileMatch = trimmed.match(/(?:Written:|Created:|\[FILE_OK\])\s*(.+)/i)
+      if (fileMatch) {
+        const filePath = fileMatch[1].trim()
+        this.addOrUpdateStep(
+          `file-${filePath}`,
+          `Modified workspace file: ${filePath}`,
+          'success',
+          'CoderAgent'
+        )
+        continue
+      }
+
+      // Detect Command Execution: [EXECUTE] / [execute]
+      const execMatch = trimmed.match(/\[(?:EXECUTE|execute)\]\s*(.+)/i)
+      if (execMatch) {
+        const cmd = execMatch[1].trim()
+        this.addOrUpdateStep(
+          `exec-${cmd}`,
+          `Execute command: ${cmd}`,
+          'active',
+          'ToolExecutor'
         )
         continue
       }
