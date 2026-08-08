@@ -44,6 +44,7 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
   const [text, setText] = useState('')
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [skillCmds, setSkillCmds] = useState<SlashCommandItem[]>([])
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -74,6 +75,10 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
       c.category.toLowerCase().includes(search)
   )
 
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [search])
+
   const handleSend = (): void => {
     const trimmed = text.trim()
     if (!trimmed) return
@@ -86,6 +91,31 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (showSlashMenu && filtered.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev + 1) % filtered.length)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
+        return
+      }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault()
+        if (filtered[selectedIndex]) {
+          insertCommand(filtered[selectedIndex].cmd)
+        }
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowSlashMenu(false)
+        return
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -149,11 +179,15 @@ export const ClaudeInput: React.FC<ClaudeInputProps> = ({
               <div className="text-xs text-zinc-500 italic p-2 text-center">No matching commands</div>
             ) : (
               <div className="space-y-1">
-                {filtered.map((item) => (
+                {filtered.map((item, idx) => (
                   <div
                     key={item.cmd}
                     onClick={() => insertCommand(item.cmd)}
-                    className="flex items-center justify-between p-2 hover:bg-purple-950/40 border border-transparent hover:border-purple-800/40 rounded-xl cursor-pointer transition-colors text-xs group"
+                    className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors text-xs group ${
+                      idx === selectedIndex
+                        ? 'bg-purple-950/70 border border-purple-600/60 text-purple-200'
+                        : 'hover:bg-purple-950/40 border border-transparent text-zinc-300'
+                    }`}
                   >
                     <div className="flex items-center space-x-2 truncate">
                       {item.category === 'Loaded Skills' ? (
